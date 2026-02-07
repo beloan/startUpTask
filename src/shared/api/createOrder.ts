@@ -17,6 +17,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<CreateOrde
     utm_yclientid,
     utm_gaclientid,
     ref_user,
+    city,
     ...body
   } = params;
 
@@ -35,6 +36,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<CreateOrde
       utm_yclientid,
       utm_gaclientid,
       ref_user,
+      city,
     },
   });
   

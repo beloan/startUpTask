@@ -53,7 +53,7 @@ export const Header = () => {
             href={withQuery("/")}
             className="flex-shrink-0 gap-2 tracking-tight text-blue-600 text-2xl font-medium"
           >
-            #Быстро и точка
+            #БыстроИточка
           </Link>
 
           

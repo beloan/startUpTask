@@ -12,4 +12,5 @@ export interface UtmParams {
   utm_yclientid?: string;
   utm_gaclientid?: string;
   ref_user?: string;
+  city?: string;
 }

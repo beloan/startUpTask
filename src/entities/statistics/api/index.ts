@@ -22,6 +22,7 @@ export const createViewEvent = async (data: {
   utm_yclientid?: string;
   utm_gaclientid?: string;
   ref_user?: string;
+  city?: string;
 }) => {
   try {
     // Разделяем данные на body и query params
@@ -38,6 +39,7 @@ export const createViewEvent = async (data: {
       utm_yclientid,
       utm_gaclientid,
       ref_user,
+      city,
       ...bodyData
     } = data;
 
@@ -55,6 +57,7 @@ export const createViewEvent = async (data: {
     if (utm_yclientid) queryParams.utm_yclientid = utm_yclientid;
     if (utm_gaclientid) queryParams.utm_gaclientid = utm_gaclientid;
     if (ref_user) queryParams.ref_user = ref_user;
+    if (city) queryParams.city = city;
 
     const cleanedData = Object.fromEntries(
       Object.entries(bodyData).filter(([_, value]) => value !== undefined)

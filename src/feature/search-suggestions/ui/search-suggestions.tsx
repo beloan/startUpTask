@@ -11,7 +11,6 @@ import { Separator } from "@/shared/ui/kit/separator";
 import { Skeleton } from "@/shared/ui/kit/skeleton";
 
 import { transformImageUrl } from "@/shared/lib/image-utils";
-import { LocaleRouteNormalizer } from "next/dist/server/normalizers/locale-route-normalizer";
 
 interface Product {
   id: number;
@@ -34,6 +33,7 @@ interface SearchSuggestionsProps {
   onSearchSubmit: () => void;
   onClose: () => void;
   onSelect?: () => void;
+  onSuggestionSearch: (query: string) => void; // Новый пропс для поиска по выбранному запросу
 }
 
 export const SearchSuggestions = ({ 
@@ -41,7 +41,8 @@ export const SearchSuggestions = ({
   onSearchQueryChange, 
   onSearchSubmit, 
   onClose,
-  onSelect 
+  onSelect,
+  onSuggestionSearch // Новый пропс
 }: SearchSuggestionsProps) => {
   const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [searchResults, setSearchResults] = useState<SearchResult>({
@@ -109,24 +110,11 @@ export const SearchSuggestions = ({
     }
   };
 
-  const saveToSearchHistory = (query: string) => {
-    if (!query.trim() || typeof window === 'undefined') return;
-    
-    const updatedHistory = [
-      query,
-      ...searchHistory.filter(item => item.toLowerCase() !== query.toLowerCase())
-    ].slice(0, 10);
-    
-    setSearchHistory(updatedHistory);
-    localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
-  };
-
   const loadPopularProducts = async () => {
     if (!isClient) return;
     
     setLoadingPopular(true);
     try {
-      // Получаем координаты из sessionStorage (автоматически определенный город)
       const params = new URLSearchParams({
         size: '6',
         sort_by: 'total_sold',
@@ -191,7 +179,6 @@ export const SearchSuggestions = ({
     setSearchResults(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      // Получаем координаты из sessionStorage (автоматически определенный город)
       const params = new URLSearchParams({
         size: '20',
         sort_by: 'name',
@@ -248,22 +235,24 @@ export const SearchSuggestions = ({
     onSearchQueryChange("");
   };
 
+  // Измененная функция для истории поиска
   const handleHistoryClick = (query: string) => {
-    onSearchQueryChange(query);
-    saveToSearchHistory(query);
+    // Используем новую функцию для поиска
+    onSuggestionSearch(query);
+    onClose();
+    if (onSelect) onSelect();
+  };
+
+  // Измененная функция для популярных запросов
+  const handlePopularQueryClick = (query: string) => {
+    // Используем новую функцию для поиска
+    onSuggestionSearch(query);
     onClose();
     if (onSelect) onSelect();
   };
 
   const handleProductClick = (product: Product) => {
     saveToRecentlyViewed(product);
-    onClose();
-    if (onSelect) onSelect();
-  };
-
-  const handlePopularQueryClick = (query: string) => {
-    onSearchQueryChange(query);
-    saveToSearchHistory(query);
     onClose();
     if (onSelect) onSelect();
   };

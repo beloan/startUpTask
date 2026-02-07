@@ -1,3 +1,4 @@
+// SearchBar.tsx
 "use client";
 
 import { Search, X } from "lucide-react";
@@ -107,6 +108,13 @@ export const SearchBar = () => {
     setShowSuggestions(false);
   };
 
+  // Новая функция для обработки поиска по выбранному запросу
+  const handleSuggestionSearch = (query: string) => {
+    setSearchQuery(query);
+    saveSearchToHistory(query);
+    performSearch(query);
+  };
+
   const handleSearchButtonClick = () => {
     if (searchQuery.trim()) {
       saveSearchToHistory(searchQuery.trim());
@@ -158,6 +166,7 @@ export const SearchBar = () => {
               onSearchSubmit={() => performSearch()}
               onClose={handleCloseSuggestions}
               onSelect={handleSelect}
+              onSuggestionSearch={handleSuggestionSearch} // Добавлен новый пропс
             />
           </div>
         </div>

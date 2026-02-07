@@ -1,7 +1,7 @@
 "use client";
 
 import { LockIcon, Loader2, Minus, Plus } from "lucide-react";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/shared/ui/kit/button";
@@ -70,6 +70,13 @@ const QuickBuyModal = ({
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
+  const handleQuantityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= 99) {
+      setFormData(prev => ({ ...prev, quantity: value }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -91,9 +98,6 @@ const QuickBuyModal = ({
     const cityFromUrl = searchParams.get("city");
     const hasUrlParams = addressFromUrl || cityFromUrl;
     
-    // ВАЖНО: Используем localStorage ТОЛЬКО если есть параметры в URL
-    // Если параметров нет в URL, значит пользователь удалил их, и мы не должны использовать localStorage
-    // Это позволяет использовать IP-определенный город из sessionStorage
     let addressFromStorage = "";
     if (hasUrlParams && typeof window !== 'undefined') {
       try {
@@ -107,7 +111,6 @@ const QuickBuyModal = ({
       }
     }
     
-    // Если параметров нет в URL, используем IP-определенный город из sessionStorage
     let ipDetectedAddress = "";
     if (!hasUrlParams && typeof window !== 'undefined') {
       try {
@@ -157,34 +160,42 @@ const QuickBuyModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-170 overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Купить в 1 клик</DialogTitle>
+      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[85vh] overflow-y-auto p-1 sm:p-4 overflow-x-hidden">
+        <DialogHeader className="px-0">
+          <DialogTitle className="text-base sm:text-lg">Купить в 1 клик</DialogTitle>
         </DialogHeader>
 
         {isSuccess ? (
-          <div className="text-center py-8">
-            <div className="text-green-500 text-4xl mb-4">✓</div>
-            <h3 className="text-xl font-semibold mb-2">Заявка принята!</h3>
+          <div className="text-center py-6">
+            <div className="text-green-500 text-4xl mb-3">✓</div>
+            <h3 className="text-lg font-semibold mb-2">Заявка принята!</h3>
           </div>
         ) : (
           <>
-            <div className="border rounded-lg p-4 mb-4">
-              <p className="font-medium truncate">{productName}</p>
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="quantity">Количество:</Label>
-                  <div className="flex items-center gap-1">
+            <div className="border rounded-lg p-3 mb-3">
+              <p className="font-medium truncate text-sm mb-3">{productName}</p>
+              
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="quantity" className="text-sm whitespace-nowrap text-gray-600">
+                      Количество:
+                    </Label>
+                    
+                  </div>
+
+                  <div className="flex items-center w-full">
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
                       onClick={handleDecreaseQuantity}
-                      className="h-8 w-8 cursor-pointer"
+                      className="h-10 w-10 sm:h-8 sm:w-8 cursor-pointer rounded-none rounded-l-md border-gray-300 hover:bg-gray-50"
                       disabled={isLoading}
                     >
                       <Minus width={16} height={16} />
                     </Button>
+                    
                     <Input
                       id="quantity"
                       name="quantity"
@@ -192,76 +203,92 @@ const QuickBuyModal = ({
                       min="1"
                       max="99"
                       value={formData.quantity}
-                      onChange={handleInputChange}
-                      className="w-20 h-8 text-center "
+                      onChange={handleQuantityInputChange}
+                      className="flex-1 h-10 sm:h-8 text-center rounded-none border-x-0 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       disabled={isLoading}
                     />
+                    
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
                       onClick={handleIncreaseQuantity}
-                      className="h-8 w-8 "
+                      className="h-10 w-10 sm:h-8 sm:w-8 cursor-pointer rounded-none rounded-r-md border-gray-300 hover:bg-gray-50"
                       disabled={isLoading}
                     >
                       <Plus width={16} height={16} />
                     </Button>
                   </div>
-                  <span className="text-sm text-gray-500">{unitName}</span>
                 </div>
-                <span className="text-lg font-normal">
-                  {totalPrice.toLocaleString('ru-RU')}₽
-                </span>
+                
+                <div className="flex flex-col mt-2 sm:mt-0">
+                  <div className="flex flex-col text-center mt-0 sm:mt-6 sm:flex-row items-center gap-1">
+                    <span className="text-lg text-center sm:text-xl text-black-600">
+                      {totalPrice.toLocaleString('ru-RU')}₽
+                    </span>
+                    <span className="text-xs text-center text-gray-500">
+                      {productPrice.toLocaleString('ru-RU')}₽/<span className="text-sm text-gray-500">{unitName}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="name">Имя *</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  required
-                  placeholder="Иван"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                />
+            
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="name" className="text-sm">Имя *</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    required
+                    placeholder="Иван"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="phone" className="text-sm">Номер телефона *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    required
+                    placeholder="+7 999 123 45 67"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="address" className="text-sm">Адрес доставки *</Label>
+                  <Input
+                    id="address"
+                    type="text"
+                    required
+                    placeholder="ул. Пушкина, д. Колотушкина"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="note" className="text-sm">Примечание к заказу</Label>
+                  <Textarea
+                    id="note"
+                    rows={2}
+                    placeholder="Дополнительные пожелания"
+                    value={formData.note}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="text-sm min-h-[80px]"
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="phone">Номер телефона *</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  required
-                  placeholder="+7 999 123 45 67"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="address">Адрес доставки *</Label>
-                <Input
-                  id="address"
-                  type="text"
-                  required
-                  placeholder="ул. Пушкина, д. Колотушкина"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="note">Примечание к заказу</Label>
-                <Textarea
-                  id="note"
-                  rows={4}
-                  placeholder="Дополнительные пожелания"
-                  value={formData.note}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                />
-              </div>
+              
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="isAnotherPerson"
@@ -270,16 +297,17 @@ const QuickBuyModal = ({
                     setFormData(prev => ({ ...prev, isAnotherPerson: !!checked }));
                   }}
                   disabled={isLoading}
-                  className="cursor-pointer"
+                  className="cursor-pointer h-4 w-4"
                 />
-                <Label htmlFor="isAnotherPerson" className="cursor-pointer">
+                <Label htmlFor="isAnotherPerson" className="cursor-pointer text-sm">
                   Заказ оформляется для другого человека
                 </Label>
               </div>
+              
               {formData.isAnotherPerson && (
-                <>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="recipientName">Имя получателя *</Label>
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="recipientName" className="text-sm">Имя получателя *</Label>
                     <Input
                       id="recipientName"
                       type="text"
@@ -288,11 +316,11 @@ const QuickBuyModal = ({
                       value={formData.recipientName}
                       onChange={handleInputChange}
                       disabled={isLoading}
-                      className="cursor-pointer"
+                      className="h-9 text-sm"
                     />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="recipientPhone">Номер телефона получателя *</Label>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="recipientPhone" className="text-sm">Номер телефона получателя *</Label>
                     <Input
                       id="recipientPhone"
                       type="tel"
@@ -301,14 +329,15 @@ const QuickBuyModal = ({
                       value={formData.recipientPhone}
                       onChange={handleInputChange}
                       disabled={isLoading}
-                      className="cursor-pointer"
+                      className="h-9 text-sm"
                     />
                   </div>
-                </>
+                </div>
               )}
+              
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer h-10 text-sm"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -321,14 +350,14 @@ const QuickBuyModal = ({
                 )}
               </Button>
 
-              <div className="flex-wrap text-center justify-center gap-2 text-sm text-gray-300">
-                <p className="text-sm/tight text-gray-300 tracking-tight pt-2 mb-2">
-                  Стоимость доставки и налоги рассчитываются<br />
-                  при оформлении заказа.
+              <div className="text-center">
+                <p className="text-xs text-gray-500 mb-1">
+                  Стоимость доставки и налоги рассчитываются при оформлении заказа.
                 </p>
-
-                <LockIcon className="h-3 w-3 inline" />
-                <span className="cursor-default">Ваши данные защищены</span>
+                <div className="flex items-center justify-center gap-1">
+                  <LockIcon className="h-3 w-3 text-gray-400" />
+                  <span className="text-xs text-gray-400">Ваши данные защищены</span>
+                </div>
               </div>
             </form>
           </>

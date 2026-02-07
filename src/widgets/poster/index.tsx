@@ -8,25 +8,25 @@ const Poster = () => {
   const slides = [
     {
       id: 1,
-      image: "https://b.fotohosting.pro/2025/12/13/TVETY-14.png",
+      image: "https://github.com/Trolozor/images/blob/main/p3.png?raw=true",
       buttonText: "Смотреть предложения",
       buttonLink: "/products"
     },
     {
       id: 2,
-      image: "https://a.fotohosting.pro/2025/12/13/TVETY-13.png",
+      image: "https://github.com/Trolozor/images/blob/main/image.png?raw=true",
       buttonText: "Заказать еду",
       buttonLink: "/products"
     },
     {
       id: 3,
-      image: "https://b.fotohosting.pro/2025/12/13/TVETY-12.png",
+      image: "https://github.com/Trolozor/images/blob/main/p1.png?raw=true",
       buttonText: "Заказать цветы",
       buttonLink: "/products"
     },
     {
       id: 4,
-      image: "https://a.fotohosting.pro/2025/12/13/TVETY-11.png",
+      image: "https://github.com/Trolozor/images/blob/main/p2.png?raw=true",
       buttonText: "Заказать цветы",
       buttonLink: "/products"
     }
@@ -77,7 +77,7 @@ const Poster = () => {
         <div className="relative h-full rounded-lg overflow-hidden">
           <div className="absolute inset-0 rounded-lg">
             <div className="grid grid-cols-10 gap-4 relative w-full h-full rounded-lg">
-              <div className="col-span-2 h-full overflow-hidden z-0 rounded-lg relative">
+              <div className="col-span-2 hidden sm:block h-full overflow-hidden z-0 rounded-lg relative">
                 <Image
                     src={slides[getPrevIndex(currentIndex)].image}
                     fill
@@ -92,19 +92,19 @@ const Poster = () => {
                   ></button>
               </div>
 
-              <div className="col-span-6 h-full z-10 relative rounded-lg overflow-hidden">
+              <div className="col-span-10 sm:col-span-6 max-[630px]:h-20 h-full z-10 relative rounded-lg overflow-hidden">
                 <div className="absolute inset-0 rounded-lg transition-opacity duration-500">
                   <Image
                     src={slides[currentIndex].image}
                     fill
-                    className="object-fill rounded-lg"
+                    className="object-cover max-[1340px]:object-fill max-[630px]:object-cover max-h-[750px]:object-fill h-[750px]:object-fill rounded-lg"
                     alt="Current slide"
                     priority
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-transparent rounded-lg" />
                 </div>
               </div>
-              <div className="col-span-2 h-full overflow-hidden z-0 rounded-lg relative">
+              <div className="col-span-2 hidden sm:block h-full overflow-hidden z-0 rounded-lg relative">
                 <Image
                   src={slides[getNextIndex(currentIndex)].image}
                   fill

@@ -9,6 +9,7 @@ export interface ViewEvent extends UtmParams {
   event: 'view' | 'click';
   contragent_phone: string;
   created_at?: string;
+  city?: string;
 }
 
 export interface ViewEventResponse {

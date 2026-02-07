@@ -4,6 +4,7 @@ import * as statsApi from "../api";
 import { GetViewEventsParams, SellerStatistics } from "./types";
 import { useContragentPhone } from "@/shared/hooks/useContragentPhone";
 import { useUtmParams } from "@/shared/hooks/useUtmParams";
+import { getCityFromStorage } from "@/shared/lib/utmStorage";
 
 export const statisticsKeys = {
   root: ["statistics"] as const,
@@ -17,6 +18,7 @@ export const useCreateViewEvent = () => {
   const contragentPhone = useContragentPhone();
   const queryClient = useQueryClient();
   const { utmParams } = useUtmParams();
+  const city = getCityFromStorage();
 
   return useMutation({
     mutationFn: (data: {
@@ -29,6 +31,7 @@ export const useCreateViewEvent = () => {
       statsApi.createViewEvent({
         ...data,
         contragent_phone: contragentPhone,
+        city,
         ...utmParams,
       }),
     onSuccess: () => {

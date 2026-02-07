@@ -11,8 +11,12 @@ export const saveUtmToStorage = (utmParams: UtmParams): void => {
   if (typeof window === 'undefined') return;
   
   try {
+    const existing = loadUtmFromStorage() || {};
+    
+    const mergedParams = { ...existing, ...utmParams };
+    
     const storedData: StoredUtmParams = {
-      ...utmParams,
+      ...mergedParams,
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(storedData));
@@ -51,8 +55,51 @@ export const clearUtmStorage = (): void => {
   localStorage.removeItem(UTM_STORAGE_KEY);
 };
 
-export const hasAnyUtmParams = (params: UtmParams): boolean => {
+export const hasAnyUtmMarkers = (params: UtmParams): boolean => {
+  const utmKeys = [
+    'utm_source',
+    'utm_medium', 
+    'utm_campaign',
+    'utm_term',
+    'utm_content',
+    'utm_name',
+    'utm_phone',
+    'utm_email',
+    'utm_leadid',
+    'utm_yclientid',
+    'utm_gaclientid',
+    'ref_user'
+  ];
+  
+  return utmKeys.some(key => 
+    params[key as keyof UtmParams] !== undefined && 
+    params[key as keyof UtmParams] !== null && 
+    params[key as keyof UtmParams] !== ''
+  );
+};
+
+export const hasAnyParams = (params: UtmParams): boolean => {
   return Object.values(params).some(value => 
     value !== undefined && value !== null && value !== ''
   );
+};
+
+export const getCityFromStorage = (): string => {
+  if (typeof window === 'undefined') return "";
+  
+  try {
+    const selectedCity = localStorage.getItem('selected_city');
+    if (selectedCity) return selectedCity;
+    
+    const detectedCity = sessionStorage.getItem('detected_city');
+    if (detectedCity) {
+      const parsed = JSON.parse(detectedCity);
+      return parsed.cityName || parsed.name;
+    }
+    
+    return "";
+  } catch (error) {
+    console.error('Failed to get city from storage:', error);
+    return "";
+  }
 };

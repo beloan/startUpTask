@@ -23,6 +23,7 @@ const utmSlice = createSlice({
       if (payload.utm_yclientid !== undefined) state.utm_yclientid = payload.utm_yclientid;
       if (payload.utm_gaclientid !== undefined) state.utm_gaclientid = payload.utm_gaclientid;
       if (payload.ref_user !== undefined) state.ref_user = payload.ref_user;
+      if (payload.city !== undefined) state.city = payload.city;
     },
     
     clearUtmParams: () => {

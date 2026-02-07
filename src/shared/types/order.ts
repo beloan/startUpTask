@@ -27,6 +27,7 @@ export interface CreateOrderDto {
 
 export interface CreateOrderParams extends CreateOrderDto, UtmParams {
   entity_type?: "docs_sales" | "view_events" | "favorites";
+  city?: string;
 }
 
 export interface CreateOrderResponse {
