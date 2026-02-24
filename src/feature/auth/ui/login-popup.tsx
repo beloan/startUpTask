@@ -1,21 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ExternalLink, 
-  Sparkles,
-  Shield,
-  User,
-  Store,
+import { AnimatePresence, motion } from "framer-motion";
+import {
   CheckCircle,
-  XCircle
+  ExternalLink,
+  Shield,
+  Sparkles,
+  Store,
+  User,
+  XCircle,
 } from "lucide-react";
+import React, { useState } from "react";
 
 import { useAuthStore } from "@/entities/user";
 
+import { getLocationParamsString } from "@/shared/lib/city-utils";
+import { Badge } from "@/shared/ui/kit/badge";
 import { Button } from "@/shared/ui/kit/button";
-import { Input } from "@/shared/ui/kit/input";
+import { Card, CardContent } from "@/shared/ui/kit/card";
 import {
   Dialog,
   DialogContent,
@@ -23,13 +25,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/ui/kit/dialog";
+import { Input } from "@/shared/ui/kit/input";
 import { Label } from "@/shared/ui/kit/label";
 import { Separator } from "@/shared/ui/kit/separator";
-import { Badge } from "@/shared/ui/kit/badge";
-import { Card, CardContent } from "@/shared/ui/kit/card";
-import { getLocationParamsString } from "@/shared/lib/city-utils";
 
-export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) => {
+export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({
+  trigger,
+}) => {
   const { isAuthenticated, user, login, logout } = useAuthStore();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [userType, setUserType] = useState<"buyer" | "seller">("buyer");
@@ -39,7 +41,7 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
   const [testMode, setTestMode] = useState(false);
   const [showPhoneSuggestion, setShowPhoneSuggestion] = useState(false);
   const [useDefaultPhone, setUseDefaultPhone] = useState(false);
-  
+
   const defaultPhone = "+79995079869";
 
   const handleLogin = () => {
@@ -77,7 +79,7 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
     setUseDefaultPhone(false);
   };
 
-  const handleTestAuth = (type: 'buyer' | 'seller') => {
+  const handleTestAuth = (type: "buyer" | "seller") => {
     const phoneToUse = phone || defaultPhone;
     setPhone(phoneToUse);
     setUserType(type);
@@ -98,14 +100,16 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
   if (isAuthenticated) {
     return (
       <Dialog>
-        <DialogTrigger asChild className="cursor-pointer">{trigger}</DialogTrigger>
+        <DialogTrigger asChild className="cursor-pointer">
+          {trigger}
+        </DialogTrigger>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ 
+            transition={{
               duration: 0.3,
-              ease: "easeOut"
+              ease: "easeOut",
             }}
             className="flex flex-col space-y-6"
           >
@@ -131,17 +135,22 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
             </div>
 
             <div className="space-y-3">
-              <Button 
+              <Button
                 asChild
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] cursor-pointer "
               >
-                <a href={`/account${getLocationParamsString()}`} className="cursor-pointer">Перейти в личный кабинет</a>
+                <a
+                  href={`/account${getLocationParamsString()}`}
+                  className="cursor-pointer"
+                >
+                  Перейти в личный кабинет
+                </a>
               </Button>
-              
+
               <Separator />
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 onClick={handleLogout}
                 className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all duration-300 active:scale-[0.98] cursor-pointer "
               >
@@ -156,7 +165,9 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
 
   return (
     <Dialog>
-      <DialogTrigger asChild className="cursor-pointer">{trigger}</DialogTrigger>
+      <DialogTrigger asChild className="cursor-pointer">
+        {trigger}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold text-blue-600">
@@ -171,24 +182,28 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ 
+              transition={{
                 duration: 0.3,
-                ease: "easeOut"
+                ease: "easeOut",
               }}
               className="space-y-6"
             >
               <div className="text-center ">
                 <Sparkles className="w-12 h-12 mx-auto text-amber-500 mb-2" />
-                <h3 className="text-lg font-semibold ">Быстрый тестовый вход</h3>
+                <h3 className="text-lg font-semibold ">
+                  Быстрый тестовый вход
+                </h3>
                 <p className="text-sm text-gray-500 mt-1">
                   Выберите тип аккаунта для демонстрации
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Card 
+                <Card
                   className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-md ${
-                    userType === "buyer" ? "ring-2 ring-blue-500 shadow-sm" : "hover:border-blue-200"
+                    userType === "buyer"
+                      ? "ring-2 ring-blue-500 shadow-sm"
+                      : "hover:border-blue-200"
                   }`}
                   onClick={() => setUserType("buyer")}
                 >
@@ -203,9 +218,11 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                   </CardContent>
                 </Card>
 
-                <Card 
+                <Card
                   className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-md ${
-                    userType === "seller" ? "ring-2 ring-green-500 shadow-sm" : "hover:border-green-200"
+                    userType === "seller"
+                      ? "ring-2 ring-green-500 shadow-sm"
+                      : "hover:border-green-200"
                   }`}
                   onClick={() => setUserType("seller")}
                 >
@@ -231,8 +248,12 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
 
               {showPhoneSuggestion && !phone && (
                 <div className="border rounded-lg p-4 bg-yellow-50 cursor-pointer">
-                  <p className="text-sm font-medium mb-2 cursor-pointer">Использовать стандартный номер?</p>
-                  <p className="text-sm text-gray-600 mb-3 cursor-pointer">{defaultPhone}</p>
+                  <p className="text-sm font-medium mb-2 cursor-pointer">
+                    Использовать стандартный номер?
+                  </p>
+                  <p className="text-sm text-gray-600 mb-3 cursor-pointer">
+                    {defaultPhone}
+                  </p>
                   <div className="flex gap-2">
                     <Button
                       onClick={acceptDefaultPhone}
@@ -256,14 +277,14 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
               )}
 
               <div className="space-y-3">
-                <Button 
+                <Button
                   onClick={() => handleTestAuth("buyer")}
                   className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] cursor-pointer "
                 >
                   Войти как покупатель
                 </Button>
 
-                <Button 
+                <Button
                   onClick={() => handleTestAuth("seller")}
                   className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] cursor-pointer "
                 >
@@ -271,8 +292,8 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                 </Button>
               </div>
 
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => setTestMode(false)}
                 className="w-full transition-all duration-300 hover:bg-gray-100 active:scale-[0.98] cursor-pointer "
               >
@@ -285,9 +306,9 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ 
+              transition={{
                 duration: 0.3,
-                ease: "easeOut"
+                ease: "easeOut",
               }}
               className="space-y-6"
             >
@@ -319,8 +340,12 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
 
                   {showPhoneSuggestion && !phone && (
                     <div className="border rounded-lg p-4 bg-yellow-50 cursor-pointer">
-                      <p className="text-sm font-medium mb-2 cursor-pointer">Использовать стандартный номер?</p>
-                      <p className="text-sm text-gray-600 mb-3 cursor-pointer">{defaultPhone}</p>
+                      <p className="text-sm font-medium mb-2 cursor-pointer">
+                        Использовать стандартный номер?
+                      </p>
+                      <p className="text-sm text-gray-600 mb-3 cursor-pointer">
+                        {defaultPhone}
+                      </p>
                       <div className="flex gap-2">
                         <Button
                           onClick={acceptDefaultPhone}
@@ -343,7 +368,7 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                     </div>
                   )}
 
-                  <Button 
+                  <Button
                     onClick={handleLogin}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] cursor-pointer "
                   >
@@ -376,12 +401,14 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                         onChange={(e) => setToken(e.target.value)}
                         className="transition-all duration-300 focus:ring-2 focus:ring-blue-500 "
                       />
-                      
+
                       <div className="pt-2">
                         <Separator className="my-4" />
-                        
-                        <h4 className="font-medium mb-3 ">Ресурсы для продавцов</h4>
-                        
+
+                        <h4 className="font-medium mb-3 ">
+                          Ресурсы для продавцов
+                        </h4>
+
                         <div className="space-y-2 ">
                           <a
                             href="https://app.tablecrm.com"
@@ -390,15 +417,21 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                             className="flex items-center gap-2 p-3 hover:bg-blue-50 rounded-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer"
                           >
                             <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center cursor-pointer">
-                              <span className="text-sm font-bold text-blue-600 cursor-pointer">TC</span>
+                              <span className="text-sm font-bold text-blue-600 cursor-pointer">
+                                TC
+                              </span>
                             </div>
                             <div className="flex-1 cursor-pointer">
-                              <p className="text-sm font-medium cursor-pointer">TableCRM</p>
-                              <p className="text-xs text-gray-500 cursor-pointer">Управление продажами</p>
+                              <p className="text-sm font-medium cursor-pointer">
+                                TableCRM
+                              </p>
+                              <p className="text-xs text-gray-500 cursor-pointer">
+                                Управление продажами
+                              </p>
                             </div>
                             <ExternalLink className="w-4 h-4 text-gray-400" />
                           </a>
-                          
+
                           <a
                             href="https://t.me/productlabpro"
                             target="_blank"
@@ -406,11 +439,17 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                             className="flex items-center gap-2 p-3 hover:bg-blue-50 rounded-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer"
                           >
                             <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center cursor-pointer">
-                              <span className="text-sm font-bold text-blue-600 cursor-pointer">TG</span>
+                              <span className="text-sm font-bold text-blue-600 cursor-pointer">
+                                TG
+                              </span>
                             </div>
                             <div className="flex-1 cursor-pointer">
-                              <p className="text-sm font-medium cursor-pointer">Telegram Bot</p>
-                              <p className="text-xs text-gray-500 cursor-pointer">Автоматизация заказов</p>
+                              <p className="text-sm font-medium cursor-pointer">
+                                Telegram Bot
+                              </p>
+                              <p className="text-xs text-gray-500 cursor-pointer">
+                                Автоматизация заказов
+                              </p>
                             </div>
                             <ExternalLink className="w-4 h-4 text-gray-400" />
                           </a>
@@ -421,8 +460,12 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
 
                   {showPhoneSuggestion && !phone && userType === "buyer" && (
                     <div className="border rounded-lg p-4 bg-yellow-50 cursor-pointer">
-                      <p className="text-sm font-medium mb-2 cursor-pointer">Использовать стандартный номер?</p>
-                      <p className="text-sm text-gray-600 mb-3 cursor-pointer">{defaultPhone}</p>
+                      <p className="text-sm font-medium mb-2 cursor-pointer">
+                        Использовать стандартный номер?
+                      </p>
+                      <p className="text-sm text-gray-600 mb-3 cursor-pointer">
+                        {defaultPhone}
+                      </p>
                       <div className="flex gap-2">
                         <Button
                           onClick={acceptDefaultPhone}
@@ -445,7 +488,7 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                     </div>
                   )}
 
-                  <Button 
+                  <Button
                     onClick={handleRegister}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] cursor-pointer "
                   >
@@ -456,8 +499,8 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
 
               <div className="text-center cursor-pointer">
                 <Separator className="my-4" />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setTestMode(true)}
                   className="w-full border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 transition-all duration-300 active:scale-[0.98] cursor-pointer "
                 >
@@ -487,7 +530,10 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
                 </p>
                 <p className="cursor-pointer">
                   Нажимая &quot;Войти&quot;, вы соглашаетесь с{" "}
-                  <a href="/terms" className="text-blue-400 hover:underline transition-colors duration-300 cursor-pointer">
+                  <a
+                    href="/terms"
+                    className="text-blue-400 hover:underline transition-colors duration-300 cursor-pointer"
+                  >
                     условиями использования
                   </a>
                 </p>

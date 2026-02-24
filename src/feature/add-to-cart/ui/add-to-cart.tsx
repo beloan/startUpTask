@@ -1,23 +1,24 @@
 "use client";
 
 import { Heart, Minus, Plus, Share2 } from "lucide-react";
-import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { useAddToCart } from "@/entities/cart/model/hooks";
-import { FavoriteButton } from "@/shared/ui/kit/favorite-button";
 import { fetchProduct } from "@/entities/product/api";
+
 import QuickBuyModal from "@/widgets/quickbuymodal/quickbuymodal";
 
+import { useDataUser } from "@/shared/hooks/useDataUser";
 import { Button } from "@/shared/ui/kit/button";
+import { FavoriteButton } from "@/shared/ui/kit/favorite-button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/shared/ui/kit/input-group";
 import { Separator } from "@/shared/ui/kit/separator";
-import { toast } from "sonner";
-import { useDataUser } from "@/shared/hooks/useDataUser";
 
 type Props = {
   productId: number;
@@ -28,11 +29,11 @@ type Props = {
   initialImages?: string[];
 };
 
-export const AddToCart = ({ 
+export const AddToCart = ({
   productId,
   unitName = "шт.",
-  initialPrice = 0, 
-  initialName = "", 
+  initialPrice = 0,
+  initialName = "",
   initialImages,
 }: Props) => {
   const searchParams = useSearchParams();
@@ -48,20 +49,27 @@ export const AddToCart = ({
   const addToCartMutation = useAddToCart();
   const [isQuickBuyOpen, setIsQuickBuyOpen] = useState(false);
   const dataUser = useDataUser();
-  
+
   // Получаем координаты из URL или sessionStorage
-  const latFromUrl = searchParams.get('lat') ? Number(searchParams.get('lat')) : undefined;
-  const lonFromUrl = searchParams.get('lon') ? Number(searchParams.get('lon')) : undefined;
-  const addressFromUrl = searchParams.get('address') || undefined;
-  const cityFromUrl = searchParams.get('city') || undefined;
-  
+  const latFromUrl = searchParams.get("lat")
+    ? Number(searchParams.get("lat"))
+    : undefined;
+  const lonFromUrl = searchParams.get("lon")
+    ? Number(searchParams.get("lon"))
+    : undefined;
+  const addressFromUrl = searchParams.get("address") || undefined;
+  const cityFromUrl = searchParams.get("city") || undefined;
+
   // Получаем координаты из sessionStorage, если их нет в URL
-  const [detectedCoords, setDetectedCoords] = useState<{ lat?: number; lon?: number } | null>(null);
-  
+  const [detectedCoords, setDetectedCoords] = useState<{
+    lat?: number;
+    lon?: number;
+  } | null>(null);
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && !latFromUrl && !lonFromUrl) {
+    if (typeof window !== "undefined" && !latFromUrl && !lonFromUrl) {
       try {
-        const detected = sessionStorage.getItem('detected_city');
+        const detected = sessionStorage.getItem("detected_city");
         if (detected) {
           const parsed = JSON.parse(detected);
           if (parsed.lat != null && parsed.lon != null) {
@@ -72,11 +80,11 @@ export const AddToCart = ({
         // Игнорируем ошибки
       }
     }
-    
+
     // Слушаем обновления detected_city
     const handleDetectedCityUpdated = () => {
       try {
-        const detected = sessionStorage.getItem('detected_city');
+        const detected = sessionStorage.getItem("detected_city");
         if (detected) {
           const parsed = JSON.parse(detected);
           if (parsed.lat != null && parsed.lon != null) {
@@ -87,25 +95,31 @@ export const AddToCart = ({
         // Игнорируем ошибки
       }
     };
-    
-    window.addEventListener('detectedCityUpdated', handleDetectedCityUpdated as EventListener);
+
+    window.addEventListener(
+      "detectedCityUpdated",
+      handleDetectedCityUpdated as EventListener,
+    );
     return () => {
-      window.removeEventListener('detectedCityUpdated', handleDetectedCityUpdated as EventListener);
+      window.removeEventListener(
+        "detectedCityUpdated",
+        handleDetectedCityUpdated as EventListener,
+      );
     };
   }, [latFromUrl, lonFromUrl]);
-  
+
   // Используем координаты из URL или из sessionStorage
   const lat = latFromUrl ?? detectedCoords?.lat;
   const lon = lonFromUrl ?? detectedCoords?.lon;
 
   const formatPrice = (price: number) => {
-    return `${price?.toLocaleString('ru-RU')}₽/${unitName === null ? "шт." : unitName}`;
+    return `${price?.toLocaleString("ru-RU")}₽/${unitName === null ? "шт." : unitName}`;
   };
 
   const loadProductDetails = React.useCallback(async () => {
     setIsLoadingProduct(true);
     try {
-      const product = await fetchProduct({ 
+      const product = await fetchProduct({
         product_id: productId,
         lat,
         lon,
@@ -127,8 +141,17 @@ export const AddToCart = ({
     } finally {
       setIsLoadingProduct(false);
     }
-  }, [productId, lat, lon, addressFromUrl, cityFromUrl, initialPrice, initialName, initialImages]);
-  
+  }, [
+    productId,
+    lat,
+    lon,
+    addressFromUrl,
+    cityFromUrl,
+    initialPrice,
+    initialName,
+    initialImages,
+  ]);
+
   // Автоматически загружаем товар при изменении координат
   useEffect(() => {
     if (lat != null && lon != null && !productData) {
@@ -147,7 +170,7 @@ export const AddToCart = ({
       return;
     }
     clearMessages();
-    
+
     if (!productData) {
       await loadProductDetails();
     }
@@ -165,28 +188,32 @@ export const AddToCart = ({
       },
       {
         onSuccess: () => {
-          setSuccessMessage(`Товар "${productData?.name || initialName}" добавлен в корзину!`);
-          
+          setSuccessMessage(
+            `Товар "${productData?.name || initialName}" добавлен в корзину!`,
+          );
+
           setTimeout(() => {
             setSuccessMessage(null);
           }, 3000);
         },
         onError: (error) => {
           console.error("Ошибка при добавлении в корзину:", error);
-          setErrorMessage("Не удалось добавить товар в корзину. Попробуйте еще раз.");
+          setErrorMessage(
+            "Не удалось добавить товар в корзину. Попробуйте еще раз.",
+          );
         },
-      }
+      },
     );
   };
 
   const handleIncrement = () => {
-    setQuantity(prev => prev + 1);
+    setQuantity((prev) => prev + 1);
     clearMessages();
   };
 
   const handleDecrement = () => {
     if (quantity > 1) {
-      setQuantity(prev => prev - 1);
+      setQuantity((prev) => prev - 1);
       clearMessages();
     }
   };
@@ -207,7 +234,7 @@ export const AddToCart = ({
       toast.success("Ссылка скопирована в буфер обмена");
     } catch (err) {
       toast.error("Не удалось скопировать ссылку");
-      console.error('Не удалось скопировать ссылку:', err);
+      console.error("Не удалось скопировать ссылку:", err);
     }
   };
 
@@ -218,30 +245,27 @@ export const AddToCart = ({
   const isLoading = isLoadingProduct || addToCartMutation.isPending;
 
   return (
-    <div className="xl:max-w-[280px] min-w-[280px] mx-auto max-w-lg w-full border border-gray-200 rounded-lg p-4 h-fit md:mt-12">
+    <div className="xl:max-w-[280px] min-w-[280px] mx-auto max-w-lg w-full border border-gray-200 rounded-lg p-4 h-fit">
       <p className="font-medium tracking-tight">Оформить заказ</p>
-      
+
       {successMessage && (
         <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
           <p className="text-sm text-green-600 text-center">{successMessage}</p>
         </div>
       )}
-      
+
       {errorMessage && (
         <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-600 text-center">{errorMessage}</p>
         </div>
       )}
-      
-      <div className="flex pt-4 justify-between items-center gap-2">
-        <div>
-          <p className="text-sm text-gray-500 inline-block">Количество:</p>{" "}
-          <span className="text-sm">{quantity}</span>
-        </div>
+
+      <div className="flex pt-1 justify-between items-center gap-2">
         <div className="max-w-32">
+          <p className="text-sm text-gray-500 inline-block">Количество:</p>{" "}
           <InputGroup>
-            <InputGroupAddon 
-              className="pr-3 cursor-pointer hover:bg-gray-50" 
+            <InputGroupAddon
+              className="pr-3 cursor-pointer hover:bg-gray-50"
               onClick={handleDecrement}
               aria-disabled={isLoading}
             >
@@ -255,13 +279,15 @@ export const AddToCart = ({
               type="number"
               aria-disabled={isLoading}
             />
-            <InputGroupAddon 
-              align="inline-end" 
-              className="pl-3 cursor-pointer hover:bg-gray-50" 
+            <InputGroupAddon
+              align="inline-end"
+              className="pl-3 cursor-pointer hover:bg-gray-50"
               onClick={handleIncrement}
               aria-disabled={isLoading}
             >
-              <Plus className={`${isLoading ? "text-gray-300" : "text-blue-500"}`} />
+              <Plus
+                className={`${isLoading ? "text-gray-300" : "text-blue-500"}`}
+              />
             </InputGroupAddon>
           </InputGroup>
         </div>
@@ -272,7 +298,7 @@ export const AddToCart = ({
         <span className="text-lg font-medium">{formatPrice(price)}</span>
       </div>
       <div className="pt-4 flex flex-col gap-2">
-        <Button 
+        <Button
           className="bg-blue-500 text-white w-full hover:bg-blue-600 cursor-pointer"
           onClick={handleAddToCart}
           disabled={isLoading}
@@ -284,8 +310,7 @@ export const AddToCart = ({
             </>
           ) : (
             <>
-              <Plus /> 
-              В корзину
+              <Plus />В корзину
             </>
           )}
         </Button>
@@ -299,13 +324,13 @@ export const AddToCart = ({
         </Button>
       </div>
       <div className="flex pt-4 justify-between items-center">
-        <FavoriteButton 
-          productId={productId} 
+        <FavoriteButton
+          productId={productId}
           showText={true}
-          className="text-sm text-gray-600 hover:text-blue-500" 
+          className="text-sm text-gray-600 hover:text-blue-500"
         />
-        
-        <button 
+
+        <button
           className="text-sm text-gray-600 flex items-center gap-2 hover:text-blue-500 transition-colors cursor-pointer"
           onClick={handleShare}
           disabled={isLoading}
@@ -324,7 +349,7 @@ export const AddToCart = ({
           isOpen={isQuickBuyOpen}
           onClose={() => setIsQuickBuyOpen(false)}
         />
-      )}  
+      )}
     </div>
   );
 };

@@ -1,7 +1,5 @@
 import { Star } from "lucide-react";
 
-
-
 type Props = {
   size: number;
   rating: number;
@@ -15,7 +13,7 @@ export const Rating = ({ rating, size }: Props) => {
           key={index}
           width={size}
           height={size}
-          strokeWidth={1}
+          strokeWidth={2}
           stroke="gold"
           className="inline"
           fill={index < Math.round(rating) ? "gold" : "transparent"}

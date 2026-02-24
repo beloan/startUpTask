@@ -3,7 +3,7 @@
 
 import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { SearchSuggestions } from "@/feature/search-suggestions/ui/search-suggestions";
 
@@ -33,11 +33,11 @@ export const SearchBar = () => {
   }, []);
 
   const saveSearchToHistory = (query: string) => {
-    if (!query.trim() || typeof window === 'undefined') return;
-    
+    if (!query.trim() || typeof window === "undefined") return;
+
     const savedHistory = localStorage.getItem("searchHistory");
     let history: string[] = [];
-    
+
     if (savedHistory) {
       try {
         history = JSON.parse(savedHistory);
@@ -48,9 +48,9 @@ export const SearchBar = () => {
 
     const updatedHistory = [
       query,
-      ...history.filter(item => item.toLowerCase() !== query.toLowerCase())
+      ...history.filter((item) => item.toLowerCase() !== query.toLowerCase()),
     ].slice(0, 10);
-    
+
     localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
   };
 
@@ -63,7 +63,7 @@ export const SearchBar = () => {
     const searchTerm = query || searchQuery;
     if (searchTerm.trim()) {
       saveSearchToHistory(searchTerm.trim());
-      
+
       setIsExpanded(false);
       setShowSuggestions(false);
       router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
@@ -123,11 +123,11 @@ export const SearchBar = () => {
   };
 
   return (
-    <div 
-      ref={containerRef} 
-      className="relative flex-1 max-w-xl mx-4"
-    >
-      <form onSubmit={handleSearchSubmit} className="relative rounded-md border-2 border-blue-500 bg-blue-500">
+    <div ref={containerRef} className="relative flex-1 max-w-xl mx-4">
+      <form
+        onSubmit={handleSearchSubmit}
+        className="relative rounded-md border-2 border-blue-500 bg-blue-500"
+      >
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none z-10 cursor-pointer" />
         <Input
           ref={inputRef}
@@ -137,7 +137,7 @@ export const SearchBar = () => {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
-          className="pl-10 pr-10 w-5/6 bg-white focus-visible:border-1 focus-visible:border-blue-500 focus-visible:ring-0 focus-visible:outline-none"
+          className="pl-10 pr-10 w-5/6 rounded-[6px] bg-white focus-visible:border-1 focus-visible:border-blue-500 focus-visible:ring-0 focus-visible:outline-none"
         />
         <button
           type="button"

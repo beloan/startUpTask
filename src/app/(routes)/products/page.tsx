@@ -210,7 +210,7 @@ function ProductsContent() {
           <h1 className="text-lg font-medium tracking-tight">
             {categoryName || "Категория"} ({totalCount !== null ? totalCount : "..."}) 
           </h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pb-4">
             <Select
               value={currentSortType}
               onValueChange={applySort}
