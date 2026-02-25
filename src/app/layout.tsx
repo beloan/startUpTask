@@ -24,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`bg-white text-gray-800 ${inter.className}`} >
-      <body className="h-screen relative z-10">
+      <body className="h-screen mt-25 relative z-10">
         <ReduxProvider>
           <Providers>
             <Suspense fallback={null}>

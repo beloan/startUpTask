@@ -11,7 +11,7 @@ const Footer = () => {
               className="tracking-tight text-blue-600 text-2xl font-medium"
               href="/"
             >
-              #БыстроИточка
+              #быстроИточка
             </a>
             <p className="pt-2 text-sm tracking-tight">
               Lorem Ipsum is simply dummy text of the printing and typesetting
@@ -75,7 +75,7 @@ const Footer = () => {
           </div>
         </div>
         <p className="pt-4 text-center text-xs pb-5">
-          © 2026 #БыстроИточка. Все права защищены.
+          © 2026 #быстроИточка. Все права защищены.
         </p>
       </div>
     </footer>

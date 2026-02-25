@@ -20,7 +20,8 @@ export const Header = () => {
   const withQuery = (path: string) => (queryString ? `${path}?${queryString}` : path);
 
   return (
-    <header className="relative z-50 border-b border-gray-100 bg-white">
+    <header className="fixed w-full top-0 z-50 border-b border-gray-100 bg-white">
+      {/* верхняя серая полоска */}
       <div className="bg-gray-100">
         <div className="container">
           <div className="flex justify-between items-center py-1">
@@ -33,11 +34,11 @@ export const Header = () => {
               <LoginPopup
                 trigger={
                   <Button
-                  variant="link"
-                  className="text-sm font-normal p-0 h-auto tracking-tight text-gray-600 cursor-pointer"
-                >
-                  Вход в систему
-                </Button>
+                    variant="link"
+                    className="text-sm font-normal p-0 h-auto tracking-tight text-gray-600 cursor-pointer"
+                  >
+                    Вход в систему
+                  </Button>
                 }
               />
             </div>
@@ -45,37 +46,31 @@ export const Header = () => {
         </div>
       </div>
 
-      
+      {/* основная часть хедера */}
       <div className="container">
         <div className="flex gap-2 lg:gap-6 py-3 items-center justify-between">
-         
+          {/* логотип */}
           <Link
             href={withQuery("/")}
             className="flex-shrink-0 gap-2 tracking-tight text-blue-600 text-2xl font-medium"
           >
-            #БыстроИточка
+            #быстроИточка
           </Link>
 
-          
-          <div className="flex-1 hidden md:flex items-center max-w-3xl ">
+          {/* поиск и меню (скрыто на мобильных) */}
+          <div className="flex-1 hidden md:flex items-center max-w-3xl">
             <div className="flex-shrink-0">
               <CategoryMenu />
             </div>
-            
             <div className="flex-1 relative">
-              <div className="hidden md:block pr-30 ">
+              <div className="hidden md:block pr-30">
                 <SearchBar />
               </div>
             </div>
           </div>
 
-          
+          {/* иконки справа */}
           <div className="flex items-center gap-2 text-gray-700">
-            <Link href={withQuery("/rating")} className="hidden md:flex ">
-              <Button size="icon" variant="ghost" className="cursor-pointer">
-                <Star width={20} height={20} />
-              </Button>
-            </Link>
             <Link href={withQuery("/favorites")} className="hidden md:flex relative">
               <Button size="icon" variant="ghost" className="cursor-pointer">
                 <Heart width={20} height={20} />

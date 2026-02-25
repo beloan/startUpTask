@@ -2,7 +2,7 @@
 
 import { Search, Filter, ChevronDown, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useCallback } from "react";
 
 import { ProductCard } from "@/entities/product";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
@@ -32,8 +32,8 @@ function SearchPageContent() {
   const minPrice = searchParams.get("min_price") || "";
   const maxPrice = searchParams.get("max_price") || "";
   const sortBy = searchParams.get("sort_by") || "relevance";
-  const address = searchParams.get("address") || ""; // Приоритет у address
-  const city = searchParams.get("city") || ""; // Обратная совместимость
+  const address = searchParams.get("address") || "";
+  const city = searchParams.get("city") || "";
   const sellerId = searchParams.get("seller_id") || "";
   const lat = searchParams.get("lat");
   const lon = searchParams.get("lon");
@@ -53,19 +53,37 @@ function SearchPageContent() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  useEffect(() => {
+    setFilters({
+      category: category,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      inStock: false,
+      ratingFrom: 0,
+    });
+  }, [category, minPrice, maxPrice]);
+
   const sortOptions = [
-    { value: "price_asc", label: "Дороже" },
-    { value: "price_desc", label: "Дешевле" },
+    { value: "price_desc", label: "Дороже" },
+    { value: "price_asc", label: "Дешевле" },
     { value: "total_sold", label: "Популярное" },
     { value: "newest", label: "Новое" },
   ];
 
   useEffect(() => {
     if (query) {
+      setPage(1);
+      setProducts([]);
       searchProducts();
       loadCategories();
     }
-  }, [query, category, minPrice, maxPrice, sortBy, page]);
+  }, [query, category, minPrice, maxPrice, sortBy]);
+
+  useEffect(() => {
+    if (query && page > 1) {
+      searchProducts();
+    }
+  }, [page]);
 
   const loadCategories = async () => {
     try {
@@ -81,6 +99,20 @@ function SearchPageContent() {
     }
   };
 
+  const filterProductsByQuery = (products: any[], query: string) => {
+    if (!query.trim()) return products;
+    const lowerQuery = query.toLowerCase();
+    return products.filter(product => 
+      product.name.toLowerCase().includes(lowerQuery) ||
+      product.category_name?.toLowerCase().includes(lowerQuery) ||
+      product.manufacturer_name?.toLowerCase().includes(lowerQuery)
+    );
+  };
+
+  const clearSearch = () => {
+    setSearchInput("");
+  };
+
   const searchProducts = async () => {
     setLoading(true);
     try {
@@ -88,10 +120,6 @@ function SearchPageContent() {
         page: page.toString(),
         size: "20",
       });
-
-      if (query) {
-        params.append("category", query); 
-      }
 
       if (category) {
         params.append("category", category);
@@ -105,7 +133,6 @@ function SearchPageContent() {
         params.append("max_price", maxPrice);
       }
 
-      
       switch (sortBy) {
         case "price_asc":
           params.append("sort_by", "price");
@@ -113,10 +140,6 @@ function SearchPageContent() {
           break;
         case "price_desc":
           params.append("sort_by", "price");
-          params.append("sort_order", "desc");
-          break;
-        case "rating":
-          params.append("sort_by", "rating");
           params.append("sort_order", "desc");
           break;
         case "total_sold":
@@ -129,11 +152,9 @@ function SearchPageContent() {
           break;
       }
 
-      // Приоритет у address, если его нет - используем city (как с адресом)
       if (address) {
         params.append("address", address);
       } else if (city) {
-        // Передаем полное название города напрямую из URL (как с адресом)
         params.append("city", city);
       }
 
@@ -141,8 +162,6 @@ function SearchPageContent() {
         params.append("seller_id", sellerId);
       }
 
-      // Координаты для выбора ближайшей цены
-      // Сначала проверяем URL, если нет - берем из sessionStorage (автоматически определенный город)
       if (lat) {
         params.append("lat", lat);
       } else if (typeof window !== 'undefined') {
@@ -154,9 +173,7 @@ function SearchPageContent() {
               params.append("lat", String(parsed.lat));
             }
           }
-        } catch (e) {
-          // Игнорируем ошибки
-        }
+        } catch (e) {}
       }
       
       if (lon) {
@@ -170,9 +187,7 @@ function SearchPageContent() {
               params.append("lon", String(parsed.lon));
             }
           }
-        } catch (e) {
-          // Игнорируем ошибки
-        }
+        } catch (e) {}
       }
 
       const response = await fetch(
@@ -185,13 +200,29 @@ function SearchPageContent() {
 
       const data = await response.json();
       
+      let newProducts = data.result || [];
+      
+      if (query) {
+        newProducts = filterProductsByQuery(newProducts, query);
+      }
+
       if (page === 1) {
-        setProducts(data.result || []);
+        setProducts(newProducts);
       } else {
-        setProducts(prev => [...prev, ...(data.result || [])]);
+        setProducts(prev => {
+          const combined = [...prev, ...newProducts];
+          return query ? filterProductsByQuery(combined, query) : combined;
+        });
       }
       
-      setTotalResults(data.count || 0);
+      setTotalResults(prev => {
+        if (page === 1) {
+          return newProducts.length;
+        } else {
+          return prev + newProducts.length;
+        }
+      });
+      
       setHasMore((data.result?.length || 0) >= 20);
     } catch (error) {
       console.error("Ошибка поиска товаров:", error);
@@ -216,6 +247,7 @@ function SearchPageContent() {
     if (newFilters.category) urlParams.category = newFilters.category;
     if (newFilters.minPrice) urlParams.min_price = newFilters.minPrice;
     if (newFilters.maxPrice) urlParams.max_price = newFilters.maxPrice;
+    if (sortBy !== "relevance") urlParams.sort_by = sortBy;
     
     updateUrl(urlParams);
     setPage(1);
@@ -234,20 +266,18 @@ function SearchPageContent() {
   };
 
   const handleSortChange = (value: string) => {
-    updateUrl({ sort_by: value });
+    updateUrl({ sort_by: value, q: query });
     setPage(1);
   };
 
   const updateUrl = (params: Record<string, string>) => {
     const newParams = new URLSearchParams();
     
-    
     if (params.q) {
       newParams.set("q", params.q);
     } else if (query) {
       newParams.set("q", query);
     }
-    
     
     Object.keys(params).forEach(key => {
       if (key !== "q" && params[key]) {
@@ -380,6 +410,13 @@ function SearchPageContent() {
                     onChange={(e) => setSearchInput(e.target.value)}
                     className="pl-10 pr-4 w-full"
                   />
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10 cursor-pointer"
+                  >
+                    <X className="w-4 h-4 cursor-pointer" />
+                  </button>
                 </div>
               </form>
 
@@ -391,7 +428,7 @@ function SearchPageContent() {
                   </SelectTrigger>
                   <SelectContent>
                     {sortOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem className="cursor-pointer" key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
                     ))}
