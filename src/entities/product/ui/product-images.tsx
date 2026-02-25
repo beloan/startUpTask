@@ -1,12 +1,12 @@
-"use client"
+"use client";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Image from "next/image";
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+
+import { transformImageUrl } from "@/shared/lib/image-utils";
+import { Button } from "@/shared/ui/kit/button";
 
 import { Product } from "../model";
-import { transformImageUrl } from "@/shared/lib/image-utils";
-
-import { Button } from "@/shared/ui/kit/button";
 
 type Props = Pick<Product, "images">;
 
@@ -16,12 +16,12 @@ export const ProductImages = ({ images }: Props) => {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [direction, setDirection] = useState<'left' | 'right' | null>(null);
+  const [direction, setDirection] = useState<"left" | "right" | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-  
-  const transformedImages = images?.map(img => transformImageUrl(img)) || [];
+
+  const transformedImages = images?.map((img) => transformImageUrl(img)) || [];
   const hasMultipleImages = transformedImages.length > 1;
-  
+
   const openModal = (index: number) => {
     setCurrentImageIndex(index);
     setIsModalOpen(true);
@@ -33,48 +33,73 @@ export const ProductImages = ({ images }: Props) => {
     setIsModalOpen(false);
   }, []);
 
-  const changeImageWithAnimation = useCallback((newIndex: number, dir: 'left' | 'right') => {
-    if (isTransitioning || transformedImages.length === 0) return;
-    
-    setIsTransitioning(true);
-    setDirection(dir);
-    
-    setTimeout(() => {
-      setCurrentImageIndex(newIndex);
+  const changeImageWithAnimation = useCallback(
+    (newIndex: number, dir: "left" | "right") => {
+      if (isTransitioning || transformedImages.length === 0) return;
+
+      setIsTransitioning(true);
+      setDirection(dir);
+
       setTimeout(() => {
-        setIsTransitioning(false);
-        setDirection(null);
-      }, 150);
-    }, 300);
-  }, [isTransitioning, transformedImages.length]);
+        setCurrentImageIndex(newIndex);
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setDirection(null);
+        }, 150);
+      }, 300);
+    },
+    [isTransitioning, transformedImages.length],
+  );
 
-  const nextImage = useCallback((e?: React.MouseEvent) => {
-    if (!hasMultipleImages) return;
-    
-    // Останавливаем всплытие, чтобы не закрывать модальное окно
-    e?.stopPropagation();
-    
-    const newIndex = currentImageIndex === transformedImages.length - 1 ? 0 : currentImageIndex + 1;
-    changeImageWithAnimation(newIndex, 'left');
-  }, [currentImageIndex, transformedImages.length, hasMultipleImages, changeImageWithAnimation]);
+  const nextImage = useCallback(
+    (e?: React.MouseEvent) => {
+      if (!hasMultipleImages) return;
 
-  const prevImage = useCallback((e?: React.MouseEvent) => {
-    if (!hasMultipleImages) return;
-    
-    // Останавливаем всплытие, чтобы не закрывать модальное окно
-    e?.stopPropagation();
-    
-    const newIndex = currentImageIndex === 0 ? transformedImages.length - 1 : currentImageIndex - 1;
-    changeImageWithAnimation(newIndex, 'right');
-  }, [currentImageIndex, transformedImages.length, hasMultipleImages, changeImageWithAnimation]);
+      // Останавливаем всплытие, чтобы не закрывать модальное окно
+      e?.stopPropagation();
+
+      const newIndex =
+        currentImageIndex === transformedImages.length - 1
+          ? 0
+          : currentImageIndex + 1;
+      changeImageWithAnimation(newIndex, "left");
+    },
+    [
+      currentImageIndex,
+      transformedImages.length,
+      hasMultipleImages,
+      changeImageWithAnimation,
+    ],
+  );
+
+  const prevImage = useCallback(
+    (e?: React.MouseEvent) => {
+      if (!hasMultipleImages) return;
+
+      // Останавливаем всплытие, чтобы не закрывать модальное окно
+      e?.stopPropagation();
+
+      const newIndex =
+        currentImageIndex === 0
+          ? transformedImages.length - 1
+          : currentImageIndex - 1;
+      changeImageWithAnimation(newIndex, "right");
+    },
+    [
+      currentImageIndex,
+      transformedImages.length,
+      hasMultipleImages,
+      changeImageWithAnimation,
+    ],
+  );
 
   const handleThumbnailClick = (index: number, e: React.MouseEvent) => {
     if (index === currentImageIndex) return;
-    
+
     // Останавливаем всплытие
     e.stopPropagation();
-    
-    const dir = index > currentImageIndex ? 'left' : 'right';
+
+    const dir = index > currentImageIndex ? "left" : "right";
     changeImageWithAnimation(index, dir);
   };
 
@@ -84,7 +109,7 @@ export const ProductImages = ({ images }: Props) => {
     if (target.closest('button[aria-label="Закрыть"]')) {
       return;
     }
-    
+
     setTouchStartX(e.touches[0].clientX);
     setTouchEndX(null);
   }, []);
@@ -95,59 +120,62 @@ export const ProductImages = ({ images }: Props) => {
     if (target.closest('button[aria-label="Закрыть"]')) {
       return;
     }
-    
+
     setTouchEndX(e.touches[0].clientX);
   }, []);
 
   const handleTouchEnd = useCallback(() => {
     if (!touchStartX || !touchEndX || !hasMultipleImages) return;
-    
+
     const distance = touchStartX - touchEndX;
     const minSwipeDistance = 50;
-    
+
     if (Math.abs(distance) < minSwipeDistance) return;
-    
+
     if (distance > 0) {
       nextImage();
     } else {
       prevImage();
     }
-    
+
     setTouchStartX(null);
     setTouchEndX(null);
   }, [touchStartX, touchEndX, hasMultipleImages, nextImage, prevImage]);
 
-  const handleModalBackgroundClick = useCallback((e: React.MouseEvent) => {
-    // Закрываем модальное окно только при клике на фон (проверяем, что клик был на самом контейнере)
-    if (modalRef.current && e.target === modalRef.current) {
-      closeModal();
-    }
-  }, [closeModal]);
+  const handleModalBackgroundClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Закрываем модальное окно только при клике на фон (проверяем, что клик был на самом контейнере)
+      if (modalRef.current && e.target === modalRef.current) {
+        closeModal();
+      }
+    },
+    [closeModal],
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isModalOpen || !hasMultipleImages) return;
-      
-      if (e.key === 'ArrowLeft') {
+
+      if (e.key === "ArrowLeft") {
         prevImage();
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === "ArrowRight") {
         nextImage();
-      } else if (e.key === 'Escape') {
+      } else if (e.key === "Escape") {
         closeModal();
       }
     };
 
     if (isModalOpen) {
-      if (typeof window !== 'undefined') {
-        window.addEventListener('keydown', handleKeyDown);
+      if (typeof window !== "undefined") {
+        window.addEventListener("keydown", handleKeyDown);
       }
       // Сохраняем исходное значение overflow для body
       const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      
+      document.body.style.overflow = "hidden";
+
       return () => {
-        if (typeof window !== 'undefined') {
-          window.removeEventListener('keydown', handleKeyDown);
+        if (typeof window !== "undefined") {
+          window.removeEventListener("keydown", handleKeyDown);
         }
         // Восстанавливаем исходное значение overflow
         document.body.style.overflow = originalOverflow;
@@ -159,13 +187,13 @@ export const ProductImages = ({ images }: Props) => {
     <>
       <div className="flex max-w-xl w-full gap-4 flex-col md:flex-row">
         {/* Контейнер для миниатюр с вертикальным скроллом на десктопе */}
-        <div className="grid grid-cols-5 md:flex md:flex-col gap-4 order-2 md:order-1 md:max-h-[500px] md:overflow-y-auto m-1">
+        <div className="grid grid-cols-5 md:flex md:flex-col gap-4 order-2 md:order-1 md:max-h-[500px]  m-1">
           {transformedImages?.map((item, id) => (
             <button
               key={id}
               className={`relative h-16 md:w-20 md:h-20 rounded-md bg-gray-50 overflow-hidden cursor-pointer focus:outline-none transition-all flex-shrink-0 ${
-                id === currentImageIndex 
-                  ? "ring-2 ring-blue-500" 
+                id === currentImageIndex
+                  ? "ring-2 ring-blue-500"
                   : "ring-1 ring-gray-200 hover:ring-blue-300"
               }`}
               onClick={() => openModal(id)}
@@ -180,9 +208,11 @@ export const ProductImages = ({ images }: Props) => {
             </button>
           ))}
         </div>
-        
-        <div className={`relative ${hasMultipleImages ? 'flex-1' : 'w-full'} bg-gray-50 rounded-md overflow-hidden flex items-center justify-center min-h-[300px] cursor-pointer group order-1 md:order-2`}>
-          <button 
+
+        <div
+          className={`relative ${hasMultipleImages ? "flex-1" : "w-full"} bg-gray-50 rounded-md overflow-hidden flex items-center justify-center min-h-[300px] cursor-pointer group order-1 md:order-2`}
+        >
+          <button
             onClick={() => openModal(0)}
             className="relative w-full h-full focus:outline-none"
             onTouchStart={handleTouchStart}
@@ -190,7 +220,10 @@ export const ProductImages = ({ images }: Props) => {
             onTouchEnd={handleTouchEnd}
           >
             <Image
-              src={transformedImages?.[currentImageIndex] || "https://picsum.photos/800/600"}
+              src={
+                transformedImages?.[currentImageIndex] ||
+                "https://picsum.photos/800/600"
+              }
               className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
               alt="Product Image"
               fill={true}
@@ -209,7 +242,7 @@ export const ProductImages = ({ images }: Props) => {
       </div>
 
       {isModalOpen && transformedImages.length > 0 && (
-        <div 
+        <div
           ref={modalRef}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 overflow-y-auto"
           onClick={handleModalBackgroundClick}
@@ -247,7 +280,7 @@ export const ProductImages = ({ images }: Props) => {
                 >
                   <ChevronLeft size={24} />
                 </Button>
-                
+
                 <Button
                   onClick={nextImage}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 size-10 bg-black/50 hover:bg-black/70 border-none text-white transition-all duration-200 hover:scale-110 hidden md:flex"
@@ -269,16 +302,16 @@ export const ProductImages = ({ images }: Props) => {
                     key={index}
                     className={`absolute inset-0 transition-all duration-300 ease-in-out ${
                       index === currentImageIndex
-                        ? direction === 'left'
+                        ? direction === "left"
                           ? isTransitioning
-                            ? 'translate-x-full opacity-0'
-                            : 'translate-x-0 opacity-100'
-                          : direction === 'right'
-                          ? isTransitioning
-                            ? '-translate-x-full opacity-0'
-                            : 'translate-x-0 opacity-100'
-                          : 'translate-x-0 opacity-100'
-                        : 'opacity-0'
+                            ? "translate-x-full opacity-0"
+                            : "translate-x-0 opacity-100"
+                          : direction === "right"
+                            ? isTransitioning
+                              ? "-translate-x-full opacity-0"
+                              : "translate-x-0 opacity-100"
+                            : "translate-x-0 opacity-100"
+                        : "opacity-0"
                     }`}
                   >
                     <Image
@@ -303,8 +336,8 @@ export const ProductImages = ({ images }: Props) => {
                       key={index}
                       onClick={(e) => handleThumbnailClick(index, e)}
                       className={`w-3 h-3 rounded-full transition-all ${
-                        index === currentImageIndex 
-                          ? "bg-white scale-110" 
+                        index === currentImageIndex
+                          ? "bg-white scale-110"
                           : "bg-gray-500 hover:bg-gray-300"
                       }`}
                       aria-label={`Go to image ${index + 1}`}
