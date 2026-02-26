@@ -1,4 +1,3 @@
-// features/recommendation/ui/recommendation.tsx
 "use client";
 
 import { ArrowRight } from 'lucide-react';
@@ -6,6 +5,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 import { useProductViewHistory } from '@/shared/hooks/use-product-view-history';
 import { Product, useProducts, fetchProducts } from '@/entities/product';
@@ -186,70 +186,129 @@ export const Recommendation = () => {
     ? "Рекомендуемые товары"
     : "Рекомендации по основным вашим просмотрам";
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
     <section className="pt-8">
       <div className="container">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium text-lg tracking-tight">{title}</h2>
-          <Button variant="outline" className="hidden md:flex cursor-pointer" asChild>
-            <Link href={`/products?${searchParams.toString()}`}>
-              Все предложения
-              <ArrowRight width={16} height={16} className="inline ml-1" />
-            </Link>
-          </Button>
+          <motion.h2
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="font-medium text-lg tracking-tight"
+          >
+            {title}
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <Button variant="outline" className="hidden md:flex cursor-pointer" asChild>
+              <Link href={`/products?${searchParams.toString()}`}>
+                Все предложения
+                <ArrowRight width={16} height={16} className="inline ml-1" />
+              </Link>
+            </Button>
+          </motion.div>
         </div>
 
         <div className="pt-4">
           {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {Array.from({ length: 6 }).map((_, index) => (
-                <ProductCardSkeleton key={index} />
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <ProductCardSkeleton />
+                </motion.div>
               ))}
             </div>
           ) : (
             <>
-              {/* Десктопная версия — сетка */}
               {!isMobile && (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.2 }}
+                  className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2"
+                >
                   {data?.result?.slice(0, 12).map((product: Product, index: number) => (
-                    <ProductCard
-                      key={product.id}
-                      {...product}
-                      position={index + 1}
-                      page={1}
-                      isRecommendation={true}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Мобильная версия — горизонтальный скролл */}
-              {isMobile && (
-                <div className="flex overflow-x-auto gap-3 pb-4 -mx-4 px-4 scrollbar-hide">
-                  {data?.result?.slice(0, 12).map((product: Product, index: number) => (
-                    <div key={product.id} className="flex-shrink-0 w-40">
+                    <motion.div key={product.id} variants={itemVariants}>
                       <ProductCard
                         {...product}
                         position={index + 1}
                         page={1}
                         isRecommendation={true}
                       />
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
+              )}
+
+              {isMobile && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="flex overflow-x-auto gap-3 pb-4 -mx-4 px-4 scrollbar-hide"
+                >
+                  {data?.result?.slice(0, 12).map((product: Product, index: number) => (
+                    <motion.div
+                      key={product.id}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                      className="flex-shrink-0 w-40"
+                    >
+                      <ProductCard
+                        {...product}
+                        position={index + 1}
+                        page={1}
+                        isRecommendation={true}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
               )}
             </>
           )}
         </div>
 
-        {/* Кнопка "Все рекомендации" для мобильных — теперь кликабельная */}
         <div className="pt-4 block md:hidden">
-          <Button variant="outline" asChild className="w-full">
-            <Link href={`/products?${searchParams.toString()}`}>
-              Все рекомендации
-              <ArrowRight width={16} height={16} className="ml-1" />
-            </Link>
-          </Button>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <Button variant="outline" asChild className="w-full">
+              <Link href={`/products?${searchParams.toString()}`}>
+                Все рекомендации
+                <ArrowRight width={16} height={16} className="ml-1" />
+              </Link>
+            </Button>
+          </motion.div>
         </div>
       </div>
     </section>

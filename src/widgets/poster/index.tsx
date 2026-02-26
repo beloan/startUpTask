@@ -3,6 +3,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { motion } from "framer-motion";
 
 const Poster = () => {
   const slides = [
@@ -61,11 +62,13 @@ const Poster = () => {
         {slides.map((slide) => {
           return (
             <SwiperSlide className="rounded-lg overflow-hidden" key={slide.id}>
-              <img
+              <motion.img
                 src={slide.image}
                 className="w-full h-full object-cover object-left"
                 loading="eager"
                 fetchPriority="high"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.3 }}
               />
             </SwiperSlide>
           );

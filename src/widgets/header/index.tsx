@@ -21,7 +21,6 @@ export const Header = () => {
 
   return (
     <header className="fixed w-full top-0 z-50 border-b border-gray-100 bg-white">
-      {/* верхняя серая полоска */}
       <div className="bg-gray-100">
         <div className="container">
           <div className="flex justify-between items-center py-1">
@@ -45,11 +44,8 @@ export const Header = () => {
           </div>
         </div>
       </div>
-
-      {/* основная часть хедера */}
       <div className="container">
         <div className="flex gap-2 lg:gap-6 py-3 items-center justify-between">
-          {/* логотип */}
           <Link
             href={withQuery("/")}
             className="flex-shrink-0 gap-2 tracking-tight text-blue-600 text-2xl font-medium"
@@ -68,7 +64,6 @@ export const Header = () => {
             </div>
           </div>
 
-          {/* иконки справа */}
           <div className="flex items-center gap-2 text-gray-700">
             <Button
             asChild

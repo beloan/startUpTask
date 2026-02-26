@@ -1,18 +1,16 @@
-// файл: /shared/ui/categories/index.tsx
 "use client";
 
 import { ArrowRight } from "lucide-react";
 import React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 
 import { Button } from "@/shared/ui/kit/button";
-import { useCategories, useCategoryTree } from "@/shared/hooks/useCategory";
+import { useCategoryTree } from "@/shared/hooks/useCategory";
 import { Skeleton } from "@/shared/ui/kit/skeleton";
-import { transformImageUrl } from "@/shared/lib/image-utils";
 
 const Categories = () => {
-  // Показываем только категории с актуальными товарами
   const { data: categoriesData, isLoading } = useCategoryTree(true);
   const searchParams = useSearchParams();
 
@@ -55,97 +53,100 @@ const Categories = () => {
     );
   }
 
-
   const mainCategories = categoriesData?.result?.filter(
     category => {
-      // Показываем только активные главные категории
-      if (!category.is_active || category.parent_id) {
-        return false;
-      }
-      
-      // Если у категории есть флаг has_products === true, показываем её
-      if (category.has_products === true) {
-        return true;
-      }
-      
-      // Если у категории нет дочерних категорий и has_products не true, не показываем
-      if (!category.children || category.children.length === 0) {
-        return false;
-      }
-      
-      // Функция для проверки, есть ли у категории или её дочерних категорий товары
+      if (!category.is_active || category.parent_id) return false;
+      if (category.has_products === true) return true;
+      if (!category.children || category.children.length === 0) return false;
       const hasProductsInTree = (cat: typeof category): boolean => {
-        // Если у категории есть флаг has_products === true, есть товары
-        if (cat.has_products === true) {
-          return true;
-        }
-        
-        // Если у категории есть дочерние категории, проверяем их рекурсивно
+        if (cat.has_products === true) return true;
         if (cat.children && cat.children.length > 0) {
-          // Проверяем, есть ли хотя бы одна активная дочерняя категория с товарами
           return cat.children.some(child => {
             if (!child.is_active) return false;
             return hasProductsInTree(child);
           });
         }
-        
-        // Если нет дочерних и has_products не true, товаров нет
         return false;
       };
-      
-      // Проверяем, есть ли товары в дереве дочерних категорий
       const hasActiveChildrenWithProducts = category.children.some(child => {
         if (!child.is_active) return false;
         return hasProductsInTree(child);
       });
-      
-      // Показываем только если есть активные дочерние категории с товарами
       return hasActiveChildrenWithProducts;
     }
   ) || [];
 
   const displayedCategories = mainCategories.slice(0, 7);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
     <section className="pt-8">
       <div className="container">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium text-lg tracking-tight">
+          <motion.h2
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="font-medium text-lg tracking-tight"
+          >
             Популярные категории
-          </h2>
-          <Button variant="outline" className="hover:ring-gray-200">
-            <Link href="/categories">
-              Все категории <ArrowRight width={16} height={16} className="inline"/>
-            </Link>
-          </Button>
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <Button variant="outline" className="hover:ring-gray-200">
+              <Link href="/categories">
+                Все категории <ArrowRight width={16} height={16} className="inline"/>
+              </Link>
+            </Button>
+          </motion.div>
         </div>
-        <div className="pt-4 grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          className="pt-4 grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7"
+        >
           {displayedCategories.map((category, index) => {
             const gradient = softGradients[index % softGradients.length];
-
-            // Сохраняем address (или city) и seller_id в ссылках на категории
             const categoryUrl = new URLSearchParams();
             categoryUrl.set('global_category_id', category.id.toString());
-            const address = searchParams.get('address'); // Приоритет у address
-            const city = searchParams.get('city'); // Обратная совместимость
+            const address = searchParams.get('address');
+            const city = searchParams.get('city');
             const sellerId = searchParams.get('seller_id');
-            if (address) {
-              categoryUrl.set('address', address);
-            } else if (city) {
-              categoryUrl.set('city', city);
-            }
-            if (sellerId) {
-              categoryUrl.set('seller_id', sellerId);
-            }
+            if (address) categoryUrl.set('address', address);
+            else if (city) categoryUrl.set('city', city);
+            if (sellerId) categoryUrl.set('seller_id', sellerId);
             
             return (
-              <a
+              <motion.a
+                key={category.id}
+                variants={itemVariants}
+                whileHover={{ scale: 1.05, transition: { type: "spring", stiffness: 300 } }}
                 href={`/products?${categoryUrl.toString()}`}
                 style={{ background: gradient }}
                 className="relative group flex h-56 items-end p-4 rounded-lg overflow-hidden hover:ring-2 hover:ring-gray-200"
-                key={category.id}
               >
-                <div className="flex justify-center absolute inset-0 brightness-75 group-hover:brightness-50">
+                <div className="flex justify-center absolute inset-0 brightness-75 group-hover:brightness-50 transition-all duration-300">
                   {category.image_url ? (
                     <img
                       src={"https://app.tablecrm.com/api/v1/" + category.image_url}
@@ -166,10 +167,10 @@ const Categories = () => {
                 <p className="leading-4 pt-3 text-xl tracking-tight relative text-white">
                   {category.name}
                 </p>
-              </a>
+              </motion.a>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

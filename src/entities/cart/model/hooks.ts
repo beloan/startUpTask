@@ -122,14 +122,14 @@ export const useCartItems = (goods: OrderGood[]) => {
     new Set(goods.map(item => item.nomenclature_id))
   );
   
-  // Состояние для отслеживания изменений адреса в localStorage
+  
   const [locationParams, setLocationParams] = useState<{
     lat?: number;
     lon?: number;
     address?: string;
     city?: string;
   }>(() => {
-    // Инициализация при первом рендере
+    
     if (typeof window === 'undefined') {
       return {};
     }
@@ -140,7 +140,7 @@ export const useCartItems = (goods: OrderGood[]) => {
     let address = searchParams.get('address') || undefined;
     let city = searchParams.get('city') || undefined;
     
-    // Если параметров нет в URL, проверяем вручную введенный адрес из localStorage
+    
     if ((!address && !city) || lat == null || lon == null) {
       try {
         const storageKey = 'bystroi_location';
@@ -153,7 +153,7 @@ export const useCartItems = (goods: OrderGood[]) => {
             lon?: number;
             manual?: boolean;
           };
-          // Если адрес был введен вручную, используем его
+          
           if (parsed.manual && (parsed.address || parsed.city)) {
             if (!address && !city) {
               address = parsed.address;
@@ -168,11 +168,11 @@ export const useCartItems = (goods: OrderGood[]) => {
           }
         }
       } catch (e) {
-        // Игнорируем ошибки
+        
       }
     }
     
-    // Если координат все еще нет, проверяем sessionStorage (автоматически определенный город)
+    
     if ((lat == null || lon == null)) {
       try {
         const detected = sessionStorage.getItem('detected_city');
@@ -186,14 +186,14 @@ export const useCartItems = (goods: OrderGood[]) => {
           }
         }
       } catch (e) {
-        // Игнорируем ошибки
+        
       }
     }
     
     return { lat, lon, address, city };
   });
   
-  // Отслеживаем изменения в localStorage
+  
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -204,7 +204,7 @@ export const useCartItems = (goods: OrderGood[]) => {
       let address = searchParams.get('address') || undefined;
       let city = searchParams.get('city') || undefined;
       
-      // Если параметров нет в URL, проверяем вручную введенный адрес из localStorage
+      
       if ((!address && !city) || lat == null || lon == null) {
         try {
           const storageKey = 'bystroi_location';
@@ -217,7 +217,7 @@ export const useCartItems = (goods: OrderGood[]) => {
               lon?: number;
               manual?: boolean;
             };
-            // Если адрес был введен вручную, используем его
+            
             if (parsed.manual && (parsed.address || parsed.city)) {
               if (!address && !city) {
                 address = parsed.address;
@@ -232,11 +232,11 @@ export const useCartItems = (goods: OrderGood[]) => {
             }
           }
         } catch (e) {
-          // Игнорируем ошибки
+          
         }
       }
       
-      // Если координат все еще нет, проверяем sessionStorage (автоматически определенный город)
+      
       if ((lat == null || lon == null)) {
         try {
           const detected = sessionStorage.getItem('detected_city');
@@ -250,33 +250,33 @@ export const useCartItems = (goods: OrderGood[]) => {
             }
           }
         } catch (e) {
-          // Игнорируем ошибки
+          
         }
       }
       
       setLocationParams({ lat, lon, address, city });
     };
     
-    // Обновляем при изменении localStorage
+    
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'bystroi_location') {
         updateLocationParams();
       }
     };
     
-    // Обновляем при изменении URL
+    
     const handlePopState = () => {
       updateLocationParams();
     };
     
-    // Первоначальная проверка
+    
     updateLocationParams();
     
-    // Слушаем изменения localStorage (из других вкладок)
+    
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('popstate', handlePopState);
     
-    // Периодически проверяем изменения (для изменений в той же вкладке)
+    
     const interval = setInterval(updateLocationParams, 500);
     
     return () => {

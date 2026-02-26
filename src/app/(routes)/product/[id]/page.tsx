@@ -14,7 +14,7 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { StructuredData } from "@/feature/structured-data/structured-data";
 
 export async function generateMetadata(
-  { params, searchParams }: Props,
+  { params, searchParams }: PageProps,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { id } = await params;

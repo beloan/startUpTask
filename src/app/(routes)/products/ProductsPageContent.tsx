@@ -54,30 +54,30 @@ function ProductsContent() {
   const { data: categoryTreeData } = useCategoryTree(true);
   const searchParams = useSearchParams();
   const sellerId = searchParams.get('seller_id');
-  const address = searchParams.get('address'); // Приоритет у address
-  const city = searchParams.get('city'); // Обратная совместимость
+  const address = searchParams.get('address'); 
+  const city = searchParams.get('city'); 
   const lat = searchParams.get('lat');
   const lon = searchParams.get('lon');
   
-  // Сначала проверяем, есть ли товары у селлера
+  
   const sellerParams = useMemo(() => {
     const baseParams: any = {
-      size: 1, // Проверяем только наличие товаров
+      size: 1, 
       sort_by: 'total_sold' as const,
       sort_order: 'desc' as const,
     };
     
-    // Приоритет у address, если его нет - используем city (как с адресом)
+    
     if (address) {
       baseParams.address = address;
     } else if (city) {
-      // Передаем полное название города напрямую из URL (как с адресом)
+      
       baseParams.city = city;
     }
     if (sellerId) {
       baseParams.seller_id = Number(sellerId);
     }
-    // Координаты для выбора ближайшей цены
+    
     if (lat) {
       const latNum = Number(lat);
       if (!Number.isNaN(latNum)) {
@@ -97,22 +97,22 @@ function ProductsContent() {
   const { data: sellerData } = useQuery({
     queryKey: ["products", "seller_check", sellerParams],
     queryFn: () => fetchProducts(sellerParams),
-    enabled: !!sellerId, // Проверяем только если есть seller_id
+    enabled: !!sellerId, 
     staleTime: 5 * 60 * 1000,
   });
   
-  // Определяем, есть ли товары у селлера (проверяем и count, и наличие товаров в result)
+  
   const hasSellerProducts = sellerData && sellerData.count > 0 && sellerData.result && sellerData.result.length > 0;
   
-  // Параметры для основного запроса
+  
   const finalParams = useMemo(() => {
     const params = { ...currentParams };
     
-    // Если у селлера есть товары - используем seller_id, иначе не используем
+    
     if (sellerId && hasSellerProducts) {
       params.seller_id = Number(sellerId);
     } else if (sellerId && hasSellerProducts === false) {
-      // Удаляем seller_id, если у селлера нет товаров
+      
       delete params.seller_id;
     }
     
@@ -138,7 +138,7 @@ function ProductsContent() {
     sort_order: selectedSort.sort_order,
   };
 
-  // Находим название категории по global_category_id
+  
   const categoryName = useMemo(() => {
     if (currentParams.category) {
       return currentParams.category;

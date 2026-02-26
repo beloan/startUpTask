@@ -450,7 +450,6 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({
                 </div>
               )}
 
-              {/* Переключатель режимов только для покупателя */}
               {userType === "buyer" && (
                 <div className="flex gap-3">
                   <Button
@@ -487,7 +486,6 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({
                 </Button>
               </div>
 
-              {/* Ресурсы для продавцов (всегда видны, если выбран seller) */}
               {userType === "seller" && (
                 <div className="pt-2">
                   <h4 className="font-medium mb-3">Ресурсы для продавцов</h4>

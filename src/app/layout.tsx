@@ -64,7 +64,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
         
-        {/* Яндекс.Метрика */}
         <Script
           id="yandex-metrika"
           strategy="afterInteractive"
@@ -87,14 +86,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             <Suspense fallback={null}>
               <Header />
+              <main>{children}</main>
+              <Footer />
+              <Toaster closeButton />
             </Suspense>
-            <main>{children}</main>
-            <Footer />
-            <Toaster closeButton />
           </Providers>
         </ReduxProvider>
         
-        {/* Noscript для пользователей без JavaScript */}
         <noscript>
           <div>
             <img src="https://mc.yandex.ru/watch/107009951" style={{ position: 'absolute', left: '-9999px' }} alt="" />
