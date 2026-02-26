@@ -27,7 +27,7 @@ export const ProductImages = ({ images }: Props) => {
     setIsModalOpen(true);
   };
 
-  const closeModal = useCallback((e?: React.MouseEvent) => {
+  const closeModal = useCallback((e?: React.MouseEvent | React.TouchEvent) => {
     e?.stopPropagation();
     setIsModalOpen(false);
   }, []);
@@ -145,7 +145,6 @@ export const ProductImages = ({ images }: Props) => {
   return (
     <>
       <div className="flex max-w-xl w-full gap-4 flex-col md:flex-row">
-        {/* Миниатюры */}
         <div className="grid grid-cols-5 md:flex md:flex-col gap-4 order-2 md:order-1 md:max-h-[500px]">
           {transformedImages.map((item, id) => (
             <button
@@ -168,7 +167,6 @@ export const ProductImages = ({ images }: Props) => {
           ))}
         </div>
 
-        {/* Основное изображение */}
         <div
           className={`relative ${
             hasMultipleImages ? "flex-1" : "w-full"
@@ -176,7 +174,7 @@ export const ProductImages = ({ images }: Props) => {
         >
           <button
             onClick={() => openModal(0)}
-            className="relative w-full h-full focus:outline-none"
+            className="relative w-full h-full focus:outline-none min-h-[400px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -192,18 +190,10 @@ export const ProductImages = ({ images }: Props) => {
               sizes="(max-width: 768px) 100vw, 600px"
               className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
-            {hasMultipleImages && (
-              <div className="md:hidden absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                <ChevronLeft className="w-4 h-4 text-white" />
-                <span className="text-white text-xs">Свайп для просмотра</span>
-                <ChevronRight className="w-4 h-4 text-white" />
-              </div>
-            )}
           </button>
         </div>
       </div>
 
-      {/* Модальное окно */}
       {isModalOpen && transformedImages.length > 0 && (
         <div
           ref={modalRef}
@@ -213,25 +203,23 @@ export const ProductImages = ({ images }: Props) => {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Контейнер с фиксированной высотой для изображения */}
-          <div className="relative w-full h-full max-h-[80vh] flex items-center justify-center">
-            {/* Кнопка закрытия */}
+          <div className="relative w-full h-full flex items-center justify-center">
             <Button
               onClick={closeModal}
-              className="absolute top-4 right-4 z-50 size-10 cursor-pointer bg-black/50 border-none text-white transition-all duration-200 hover:scale-110"
+              className="absolute top-4 right-4 z-50 size-11 cursor-pointer bg-black/50 border-none text-white transition-all duration-200 hover:scale-110"
               variant="outline"
               aria-label="Закрыть"
               onTouchStart={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
               onTouchEnd={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                closeModal();
+                closeModal(e);
               }}
             >
               <X size={24} />
             </Button>
 
-            {/* Кнопки навигации для десктопа (видимые) */}
             {hasMultipleImages && (
               <>
                 <Button
@@ -252,28 +240,22 @@ export const ProductImages = ({ images }: Props) => {
                 >
                   <ChevronRight size={24} />
                 </Button>
-              </>
-            )}
 
-            {/* Невидимые области для навигации на мобильных */}
-            {hasMultipleImages && (
-              <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-0 top-0 bottom-0 w-1/3 z-40 bg-transparent cursor-pointer focus:outline-none"
+                  className="absolute left-0 top-35 bottom-0 w-1/3 z-40 h-1/2 bg-transparent cursor-pointer focus:outline-none"
                   aria-label="Предыдущее изображение (нажать слева)"
                   disabled={isTransitioning}
                 />
                 <button
                   onClick={nextImage}
-                  className="absolute right-0 top-0 bottom-0 w-1/3 z-40 bg-transparent cursor-pointer focus:outline-none"
+                  className="absolute right-0 top-35 bottom-0 w-1/3 h-1/2 z-40 bg-transparent cursor-pointer focus:outline-none"
                   aria-label="Следующее изображение (нажать справа)"
                   disabled={isTransitioning}
                 />
               </>
             )}
 
-            {/* Контейнер с изображением */}
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
               {transformedImages.map((img, index) => (
                 <div
@@ -304,7 +286,6 @@ export const ProductImages = ({ images }: Props) => {
               ))}
             </div>
 
-            {/* Индикаторы и счетчик */}
             {hasMultipleImages && (
               <>
                 <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
@@ -326,13 +307,6 @@ export const ProductImages = ({ images }: Props) => {
                   {currentImageIndex + 1} / {transformedImages.length}
                 </div>
               </>
-            )}
-
-            {/* Подсказка для мобильных */}
-            {hasMultipleImages && (
-              <div className="md:hidden absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full z-10">
-                <span className="text-white text-xs">Свайп или нажмите по краям</span>
-              </div>
             )}
           </div>
         </div>

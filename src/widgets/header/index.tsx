@@ -57,7 +57,6 @@ export const Header = () => {
             #быстроИточка
           </Link>
 
-          {/* поиск и меню (скрыто на мобильных) */}
           <div className="flex-1 hidden md:flex items-center max-w-3xl">
             <div className="flex-shrink-0">
               <CategoryMenu />
@@ -71,6 +70,20 @@ export const Header = () => {
 
           {/* иконки справа */}
           <div className="flex items-center gap-2 text-gray-700">
+            <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="hidden md:inline-flex ml-2"
+          >
+            <a
+              href="https://t.me/tablecrmbot?start=referral_8169161833"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Бот
+            </a>
+          </Button>
             <Link href={withQuery("/favorites")} className="hidden md:flex relative">
               <Button size="icon" variant="ghost" className="cursor-pointer">
                 <Heart width={20} height={20} />

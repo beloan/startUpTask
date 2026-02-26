@@ -14,6 +14,7 @@ import { Button } from "@/shared/ui/kit/button";
 import { useDataUser } from "@/shared/hooks/useDataUser";
 import { toast } from "sonner";
 import { getLocationParamsString } from "@/shared/lib/city-utils";
+import { PhoneAuthSheet } from "@/feature/auth/phone-auth-sheet";
 
 type ProductCardProps = Product & {
   position?: number;
@@ -46,6 +47,9 @@ export const ProductCard = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const hasTrackedView = useRef(false);
   const dataUser = useDataUser();
+  const [isAuthSheetOpen, setIsAuthSheetOpen] = useState(false);
+  const [pendingAdd, setPendingAdd] = useState<{ id: number; quantity: number } | null>(null);
+
 
   useEffect(() => {
     if (cartData?.goods) {
@@ -75,6 +79,14 @@ export const ProductCard = ({
       }
     };
   }, [id, position, page, trackView]);
+
+    useEffect(() => {
+      if (dataUser && pendingAdd) {
+        const { id, quantity } = pendingAdd;
+        addToCartMutation.mutate({ nomenclature_id: id, quantity });
+        setPendingAdd(null);
+      }
+    }, [dataUser, pendingAdd, addToCartMutation]);
 
   const updateServerQuantity = async (targetQuantity: number) => {
     if (!id) return;
@@ -142,15 +154,13 @@ export const ProductCard = ({
     e.preventDefault();
     e.stopPropagation();
 
-    if(!dataUser) {
-      toast.error("Авторизируйтесь для добавления товара в корзину");
+    if (!dataUser) {
+      setPendingAdd({ id, quantity: 1 });
+      setIsAuthSheetOpen(true);
       return;
     }
    
     if (!id) return;
-   
-    setLocalQuantity(1);
-    setShouldUpdateServer(true);
    
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -302,6 +312,11 @@ export const ProductCard = ({
           </div>
         )}
       </Link>
+       <PhoneAuthSheet
+        isOpen={isAuthSheetOpen}
+        onClose={() => setIsAuthSheetOpen(false)}
+        onSuccess={() => {}}
+      />
     </div>
   );
 };

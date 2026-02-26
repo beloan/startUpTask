@@ -10,6 +10,47 @@ import ProductInfo from "./info";
 import ProductReviews from "./reviews";
 import ProductСharacteristics from "./Сharacteristics";
 
+import type { Metadata, ResolvingMetadata } from "next";
+import { StructuredData } from "@/feature/structured-data/structured-data";
+
+export async function generateMetadata(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { id } = await params;
+  const { lat, lon, address, city } = await searchParams;
+
+  const product = await fetchProductServer(
+    id,
+    lat ? Number(lat) : undefined,
+    lon ? Number(lon) : undefined,
+    address ? String(address) : undefined,
+    city ? String(city) : undefined
+  );
+
+  if (!product) {
+    return {
+      title: "Товар не найден",
+      description: "Запрашиваемый товар не существует или был удалён.",
+    };
+  }
+
+  const title = `${product.name} купить по цене ${product.price}₽`;
+  const description = product.description ||
+    `Купить ${product.name} в магазине «Быстро и точка». ${product.category_name ? `Категория: ${product.category_name}.` : ''} Быстрая доставка.`;
+
+  return {
+    title,
+    description,
+    keywords: [product.name, product.category_name, "купить", "цена", "доставка"].filter(Boolean),
+    openGraph: {
+      title: `${product.name} | Быстро и точка`,
+      description,
+      url: `https://bystroi.ru/product/${id}`,
+    },
+  };
+}
+
 interface PageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -87,6 +128,14 @@ export default async function Page({ params, searchParams }: PageProps) {
         </div>
 
         <ProductViewed />
+        <StructuredData
+          type="Product"
+          data={{
+            name: product.name,
+            description: product.description,
+            price: product.price,
+          }}
+        />
       </div>
     </>
   );
