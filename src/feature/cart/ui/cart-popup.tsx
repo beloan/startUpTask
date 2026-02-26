@@ -26,7 +26,6 @@ export const CartPopup = () => {
     items,
     isLoading: areItemsLoading,
     hasError,
-    totalItems,
     totalPrice,
   } = useCartItems(cart?.goods || []);
 
@@ -48,7 +47,7 @@ export const CartPopup = () => {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="flex flex-col h-[calc(100dvh-85px)] md:h-auto w-screen rounded-none md:w-lg md:rounded-md overflow-hidden"
+        className="flex flex-col h-[calc(100dvh-85px)] md:h-auto md:max-h-[480px] rounded-none md:w-lg md:rounded-md overflow-hidden"
         sideOffset={8}
       >
         <div className="flex items-center justify-between pb-4 border-b">

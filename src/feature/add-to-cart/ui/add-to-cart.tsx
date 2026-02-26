@@ -18,6 +18,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/shared/ui/kit/input-group";
+import { PhoneAuthSheet } from "@/feature/auth/phone-auth-sheet";
 import { Separator } from "@/shared/ui/kit/separator";
 
 type Props = {
@@ -49,6 +50,8 @@ export const AddToCart = ({
   const addToCartMutation = useAddToCart();
   const [isQuickBuyOpen, setIsQuickBuyOpen] = useState(false);
   const dataUser = useDataUser();
+  const [isAuthSheetOpen, setIsAuthSheetOpen] = useState(false);
+  const [pendingAdd, setPendingAdd] = useState<{ id: number; quantity: number } | null>(null);
 
   // Получаем координаты из URL или sessionStorage
   const latFromUrl = searchParams.get("lat")
@@ -65,6 +68,23 @@ export const AddToCart = ({
     lat?: number;
     lon?: number;
   } | null>(null);
+
+   useEffect(() => {
+    if (dataUser && pendingAdd) {
+      addToCartMutation.mutate(
+        { nomenclature_id: pendingAdd.id, quantity: pendingAdd.quantity },
+        {
+          onSuccess: () => {
+            setSuccessMessage(`Товар добавлен в корзину!`);
+          },
+          onError: (error) => {
+            setErrorMessage("Не удалось добавить товар.");
+          },
+        }
+      );
+      setPendingAdd(null);
+    }
+  }, [dataUser, pendingAdd, addToCartMutation]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !latFromUrl && !lonFromUrl) {
@@ -165,8 +185,9 @@ export const AddToCart = ({
   };
 
   const handleAddToCart = async () => {
-    if (!dataUser) {
-      setErrorMessage("Авторизуйтесь для добавления товара в корзину");
+     if (!dataUser) {
+      setPendingAdd({ id: productId, quantity });
+      setIsAuthSheetOpen(true);
       return;
     }
     clearMessages();
@@ -350,6 +371,10 @@ export const AddToCart = ({
           onClose={() => setIsQuickBuyOpen(false)}
         />
       )}
+      <PhoneAuthSheet
+        isOpen={isAuthSheetOpen}
+        onClose={() => setIsAuthSheetOpen(false)}
+      />
     </div>
   );
 };

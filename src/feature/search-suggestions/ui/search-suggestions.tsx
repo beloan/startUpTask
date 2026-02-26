@@ -1,9 +1,9 @@
 // SearchSuggestions.tsx
 "use client";
 
-import { Clock8, Flame, Loader2, X } from "lucide-react";
+import { Clock8, Flame, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 
 import { Badge } from "@/shared/ui/kit/badge";
@@ -182,7 +182,7 @@ export const SearchSuggestions = ({
       const params = new URLSearchParams({
         size: '20',
         sort_by: 'name',
-        sort_order: 'asc',
+        sort_order: 'desc',
       });
       
       try {

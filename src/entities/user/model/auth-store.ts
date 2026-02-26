@@ -1,4 +1,3 @@
-// entities/user/model/auth-store.ts
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -12,16 +11,22 @@ export interface User {
   company_name?: string;
   address?: string;
   registration_date?: string;
+  token?: string;
+  balance?: number;
+  is_admin?: boolean;
+  username?: string;
 }
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  login: (phone: string, type: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  login: (phone: string, type: string, token?: string) => Promise<void>;
   logout: () => void;
 }
 
-const generateMockUser = (type: string, phone: string): User => {
+const generateMockUser = (phone: string, type: string): User => {
   const isSeller = type === 'seller';
   const id = Math.floor(Math.random() * 10000);
   
@@ -50,20 +55,75 @@ const generateMockUser = (type: string, phone: string): User => {
   return isSeller ? sellerData : buyerData;
 };
 
+const verifySellerToken = async (token: string): Promise<{ cashbox: any; user: any }> => {
+  try {
+    const cashboxResponse = await fetch(
+      `https://app.tablecrm.com/api/v1/cashboxes_meta/?token=${token}`
+    );
+    if (!cashboxResponse.ok) {
+      throw new Error('Неверный токен');
+    }
+    const cashboxData = await cashboxResponse.json();
+
+    const cashbox = cashboxData.cboxes?.find((cb: any) => cb.token === token);
+    if (!cashbox) {
+      throw new Error('Касса не найдена');
+    }
+
+    const userResponse = await fetch(
+      `https://app.tablecrm.com/api/v1/users/permissions/me/?token=${token}`
+    );
+    if (!userResponse.ok) {
+      throw new Error('Не удалось получить данные пользователя');
+    }
+    const userData = await userResponse.json();
+
+    return { cashbox, user: userData };
+  } catch (error) {
+    console.error('Ошибка аутентификации продавца:', error);
+    throw error;
+  }
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      login: (phone: string, type: string) => {
-        const mockUser = generateMockUser(type, phone);
-        set({ user: mockUser, isAuthenticated: true });
+      isLoading: false,
+      error: null,
+      login: async (phone: string, type: string, token?: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          if (type === 'seller' && token) {
+            const { cashbox, user: userInfo } = await verifySellerToken(token);
+            
+            const user: User = {
+              id: userInfo.user_id,
+              name: `${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() || userInfo.username || 'Продавец',
+              contragent_phone: phone,
+              type: 'seller',
+              token: cashbox.token,
+              balance: cashbox.balance,
+              is_admin: userInfo.is_admin,
+              username: userInfo.username,
+            };
+            set({ user, isAuthenticated: true });
+          } else {
+            const mockUser = generateMockUser(phone, type);
+            set({ user: mockUser, isAuthenticated: true });
+          }
+        } catch (error: any) {
+          set({ error: error.message || 'Ошибка входа' });
+        } finally {
+          set({ isLoading: false });
+        }
       },
-      logout: () => set({ user: null, isAuthenticated: false }),
+      logout: () => set({ user: null, isAuthenticated: false, error: null }),
     }),
     {
       name: "auth-store",
       storage: createJSONStorage(() => localStorage),
-    },
+    }
   ),
 );

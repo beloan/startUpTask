@@ -14,7 +14,7 @@ export function getDetectedCityFromResponse(data: any): {
   lon: number;
 } | null {
   try {
-    // Проверяем наличие полей в теле ответа
+    
     if (data?.detected_city && data?.detected_lat != null && data?.detected_lon != null) {
       const city = String(data.detected_city);
       const lat = parseFloat(String(data.detected_lat));
@@ -33,20 +33,20 @@ export function getDetectedCityFromResponse(data: any): {
 
 export const fetchProducts = async (params: GetProductsDto) => {
   try {
-    // Приоритет: 1) параметры из запроса, 2) вручную введенный адрес из localStorage (только если есть параметры в URL), 3) автоматически определенный город
+    
     let addressParam = params.address || params.city;
     let lat = params.lat;
     let lon = params.lon;
     
-    // Если параметров нет, проверяем вручную введенный адрес из localStorage
-    // ВАЖНО: Используем localStorage ТОЛЬКО если есть параметры в URL
-    // Если параметров нет в URL, значит пользователь удалил их, и мы не должны использовать localStorage
+    
+    
+    
     if ((!addressParam || lat == null || lon == null) && typeof window !== 'undefined') {
-      // Проверяем, есть ли параметры в URL
+      
       const urlParams = new URLSearchParams(window.location.search);
       const hasUrlParams = urlParams.get('address') || urlParams.get('city');
       
-      // Используем localStorage ТОЛЬКО если есть параметры в URL
+      
       if (hasUrlParams) {
         try {
           const storageKey = 'bystroi_location';
@@ -59,7 +59,7 @@ export const fetchProducts = async (params: GetProductsDto) => {
               lon?: number;
               manual?: boolean;
             };
-            // Если адрес был введен вручную, используем его
+            
             if (parsed.manual && (parsed.address || parsed.city)) {
               if (!addressParam) {
                 addressParam = parsed.address || parsed.city;
@@ -73,7 +73,7 @@ export const fetchProducts = async (params: GetProductsDto) => {
             }
           }
         } catch (e) {
-          // Игнорируем ошибки
+          
         }
       }
     }
@@ -94,13 +94,13 @@ export const fetchProducts = async (params: GetProductsDto) => {
       seller_id: params.seller_id,
     };
     
-    // Передаем address только если он есть (не передаем, если нет ни address, ни city)
+    
     if (addressParam) {
       requestParams.address = addressParam;
     }
     
-    // Передаем координаты только если они есть
-    // Если координат все еще нет, проверяем sessionStorage (автоматически определенный город)
+    
+    
     if (lat != null) {
       requestParams.lat = lat;
     } else if (typeof window !== 'undefined') {
@@ -113,7 +113,7 @@ export const fetchProducts = async (params: GetProductsDto) => {
           }
         }
       } catch (e) {
-        // Игнорируем ошибки
+        
       }
     }
     
@@ -129,18 +129,18 @@ export const fetchProducts = async (params: GetProductsDto) => {
           }
         }
       } catch (e) {
-        // Игнорируем ошибки
+        
       }
     }
     
-    // Удаляем undefined значения из параметров
+    
     Object.keys(requestParams).forEach(key => {
       if (requestParams[key] === undefined) {
         delete requestParams[key];
       }
     });
     
-    // Используем fetch для получения данных
+    
     const url = new URL(`${API_BASE_URL}/products`);
     Object.entries(requestParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -155,15 +155,15 @@ export const fetchProducts = async (params: GetProductsDto) => {
       },
     });
     
-    // Парсим данные из ответа
+    
     const fetchData = await fetchResponse.json();
     
-    // Извлекаем автоматически определенный город из тела ответа
+    
     const detectedCity = getDetectedCityFromResponse(fetchData);
     if (detectedCity) {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('detected_city', JSON.stringify(detectedCity));
-        // Отправляем кастомное событие для обновления UI
+        
         window.dispatchEvent(new CustomEvent('detectedCityUpdated'));
       }
     }
@@ -175,7 +175,7 @@ export const fetchProducts = async (params: GetProductsDto) => {
   }
 };
 
-// Функция для получения автоматически определенного города (делает запрос без параметров локации)
+
 export const fetchDetectedCity = async (): Promise<{ city: string; lat: number; lon: number } | null> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/products`, {
@@ -185,7 +185,7 @@ export const fetchDetectedCity = async (): Promise<{ city: string; lat: number; 
       },
     });
     
-    // Бэкенд возвращает detected_city, detected_lat, detected_lon в теле ответа
+    
     return getDetectedCityFromResponse(response.data);
   } catch (error) {
     console.error("Error fetching detected city:", error);
@@ -195,20 +195,20 @@ export const fetchDetectedCity = async (): Promise<{ city: string; lat: number; 
 
 export const fetchProduct = async (params: GetProductDto) => {
   try {
-    // Приоритет: 1) параметры из запроса, 2) вручную введенный адрес из localStorage (только если есть параметры в URL), 3) автоматически определенный город
+    
     let addressParam = params.address || params.city;
     let lat = params.lat;
     let lon = params.lon;
     
-    // Если параметров нет, проверяем вручную введенный адрес из localStorage
-    // ВАЖНО: Используем localStorage ТОЛЬКО если есть параметры в URL
-    // Если параметров нет в URL, значит пользователь удалил их, и мы не должны использовать localStorage
+    
+    
+    
     if ((!addressParam || lat == null || lon == null) && typeof window !== 'undefined') {
-      // Проверяем, есть ли параметры в URL
+      
       const urlParams = new URLSearchParams(window.location.search);
       const hasUrlParams = urlParams.get('address') || urlParams.get('city');
       
-      // Используем localStorage ТОЛЬКО если есть параметры в URL
+      
       if (hasUrlParams) {
         try {
           const storageKey = 'bystroi_location';
@@ -221,7 +221,7 @@ export const fetchProduct = async (params: GetProductDto) => {
               lon?: number;
               manual?: boolean;
             };
-            // Если адрес был введен вручную, используем его
+            
             if (parsed.manual && (parsed.address || parsed.city)) {
               if (!addressParam) {
                 addressParam = parsed.address || parsed.city;
@@ -235,12 +235,12 @@ export const fetchProduct = async (params: GetProductDto) => {
             }
           }
         } catch (e) {
-          // Игнорируем ошибки
+          
         }
       }
     }
     
-    // Если координат все еще нет, проверяем sessionStorage (автоматически определенный город)
+    
     if ((lat == null || lon == null) && typeof window !== 'undefined') {
       try {
         const detected = sessionStorage.getItem('detected_city');
@@ -254,7 +254,7 @@ export const fetchProduct = async (params: GetProductDto) => {
           }
         }
       } catch (e) {
-        // Игнорируем ошибки
+        
       }
     }
     
@@ -264,7 +264,7 @@ export const fetchProduct = async (params: GetProductDto) => {
       address: addressParam,
     };
     
-    // Удаляем undefined значения из параметров
+    
     Object.keys(requestParams).forEach(key => {
       if (requestParams[key as keyof typeof requestParams] === undefined) {
         delete requestParams[key as keyof typeof requestParams];
@@ -283,7 +283,7 @@ export const fetchProduct = async (params: GetProductDto) => {
 
 export const fetchProductServer = async (id: string, lat?: number, lon?: number, address?: string, city?: string) => {
   try {
-    // Приоритет: используем переданные параметры (они уже должны быть из URL или localStorage на клиенте)
+    
     const addressParam = address || city;
     
     const params = new URLSearchParams();

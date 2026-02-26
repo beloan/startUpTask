@@ -108,7 +108,6 @@ export const SearchBar = () => {
     setShowSuggestions(false);
   };
 
-  // Новая функция для обработки поиска по выбранному запросу
   const handleSuggestionSearch = (query: string) => {
     setSearchQuery(query);
     saveSearchToHistory(query);
@@ -150,7 +149,7 @@ export const SearchBar = () => {
           <button
             type="button"
             onClick={clearSearch}
-            className="absolute right-23 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10 cursor-pointer"
+            className="absolute right-20 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10 cursor-pointer"
           >
             <X className="w-4 h-4 cursor-pointer" />
           </button>
@@ -166,7 +165,7 @@ export const SearchBar = () => {
               onSearchSubmit={() => performSearch()}
               onClose={handleCloseSuggestions}
               onSelect={handleSelect}
-              onSuggestionSearch={handleSuggestionSearch} // Добавлен новый пропс
+              onSuggestionSearch={handleSuggestionSearch}
             />
           </div>
         </div>

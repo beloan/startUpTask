@@ -47,7 +47,7 @@ const ProductInfo = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const searchParams = useSearchParams();
 
-  // Получаем координаты из URL или sessionStorage для обновления цены на клиенте
+  
   const latFromUrl = searchParams.get("lat")
     ? Number(searchParams.get("lat"))
     : undefined;
@@ -57,7 +57,7 @@ const ProductInfo = ({
   const addressFromUrl = searchParams.get("address") || undefined;
   const cityFromUrl = searchParams.get("city") || undefined;
 
-  // Получаем координаты из sessionStorage, если их нет в URL
+  
   const [detectedCoords, setDetectedCoords] = useState<{
     lat?: number;
     lon?: number;
@@ -74,11 +74,11 @@ const ProductInfo = ({
           }
         }
       } catch (e) {
-        // Игнорируем ошибки
+        
       }
     }
 
-    // Слушаем обновления detected_city
+    
     const handleDetectedCityUpdated = () => {
       try {
         const detected = sessionStorage.getItem("detected_city");
@@ -89,7 +89,7 @@ const ProductInfo = ({
           }
         }
       } catch (e) {
-        // Игнорируем ошибки
+        
       }
     };
 
@@ -105,11 +105,11 @@ const ProductInfo = ({
     };
   }, [latFromUrl, lonFromUrl]);
 
-  // Используем координаты из URL или из sessionStorage
+  
   const lat = latFromUrl ?? detectedCoords?.lat;
   const lon = lonFromUrl ?? detectedCoords?.lon;
 
-  // Обновляем товар на клиенте с правильными координатами
+  
   const { data: updatedProduct } = useProduct({
     product_id: id,
     lat,
@@ -118,7 +118,7 @@ const ProductInfo = ({
     city: cityFromUrl,
   });
 
-  // Используем обновленную цену, если товар обновился
+  
   const price = updatedProduct?.price ?? initialPrice;
 
   const { data: reviewsData, isLoading: reviewsLoading } = useReviews({

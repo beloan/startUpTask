@@ -1,12 +1,45 @@
-// components/newsletter/subscribe-newsletter.tsx
-import { Calendar, Hand, Gift, Mail } from "lucide-react";
-import React from "react";
-
+"use client"
+import { Calendar, Hand, Gift, Mail, Loader2 } from "lucide-react";
+import React, { useState } from "react";
 import { Button } from "@/shared/ui/kit/button";
 import { Input } from "@/shared/ui/kit/input";
 import Link from "next/link";
 
 const SubscribeNewsletter = () => {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setStatus("loading");
+    setMessage("");
+
+    try {
+      const response = await fetch("https://user-agent.cc/hook/9VRykWNozDCaz0cfb2ZF6RcZgfLR5x", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        setStatus("success");
+        setMessage("Спасибо за подписку! Проверьте вашу почту.");
+        setEmail("");
+      } else {
+        setStatus("error");
+        setMessage("Произошла ошибка. Попробуйте позже.");
+      }
+    } catch (error) {
+      setStatus("error");
+      setMessage("Ошибка соединения. Проверьте интернет.");
+    }
+  };
+
   return (
     <section className="pt-8">
       <div className="container">
@@ -29,7 +62,7 @@ const SubscribeNewsletter = () => {
                 </p>
                 
                 <div className="pt-6">
-                  <form className="flex max-w-md gap-x-3">
+                  <form onSubmit={handleSubmit} className="flex max-w-md gap-x-3">
                     <div className="flex-1">
                       <label htmlFor="email-address" className="sr-only">
                         Email address
@@ -40,17 +73,34 @@ const SubscribeNewsletter = () => {
                           id="email-address"
                           type="email"
                           name="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
                           required
                           placeholder="Ваш email"
                           autoComplete="email"
                           className="pl-10 bg-white border-gray-300 focus:border-blue-500"
+                          disabled={status === "loading"}
                         />
                       </div>
                     </div>
-                    <Button className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
-                      Подписаться
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                      disabled={status === "loading"}
+                    >
+                      {status === "loading" ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Подписаться"
+                      )}
                     </Button>
                   </form>
+                  
+                  {message && (
+                    <p className={`mt-3 text-sm ${status === "success" ? "text-green-600" : "text-red-600"}`}>
+                      {message}
+                    </p>
+                  )}
                   
                   <p className="mt-3 text-xs text-gray-500">
                     Подписываясь, вы соглашаетесь с{' '}

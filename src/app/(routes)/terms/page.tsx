@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Пользовательское соглашение",
+  description: "Ознакомьтесь с условиями использования сервиса «Быстро и точка».",
+};
+
 export default function Docs() {
   return (
     <section className="py-8">
