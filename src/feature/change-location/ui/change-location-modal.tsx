@@ -10,7 +10,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef} from "react";
 import { isMobile } from "react-device-detect";
 
 import {
@@ -74,6 +74,7 @@ export const ChangeLocationModal = () => {
   const router = useRouter();
   const storageKey = "bystroi_location";
   const debouncedAddress = useDebounce(addressInput, 300);
+  const hasRestoredFromStorage = useRef(false);
 
   // Читаем адрес из URL при загрузке
   useEffect(() => {
@@ -498,6 +499,72 @@ export const ChangeLocationModal = () => {
         );
         const data: City[] = await res.json();
         setCities(data);
+
+        if (!hasRestoredFromStorage.current) {
+          const addressParam = searchParams.get("address");
+          const cityParam = searchParams.get("city");
+
+          if (addressParam || cityParam) {
+            // Если параметры уже есть в URL — не восстанавливаем
+            hasRestoredFromStorage.current = true;
+          } else {
+            try {
+              const raw = localStorage.getItem(storageKey);
+              if (raw) {
+                const stored = JSON.parse(raw) as {
+                  city?: string;
+                  address?: string;
+                  lat?: number;
+                  lon?: number;
+                };
+
+                if (stored.city) {
+                  // Восстанавливаем город
+                  const cityFromStorage = data.find(
+                    (city) =>
+                      city.name === stored.city ||
+                      city.name_alt === stored.city ||
+                      city.name_en === stored.city
+                  );
+                  if (cityFromStorage) {
+                    setSelected(cityFromStorage);
+                    const newParams = new URLSearchParams(searchParams.toString());
+                    newParams.set("city", cityFromStorage.name);
+                    if (cityFromStorage.coords) {
+                      newParams.set("lat", String(cityFromStorage.coords.lat));
+                      newParams.set("lon", String(cityFromStorage.coords.lon));
+                    }
+                    router.replace(`?${newParams.toString()}`, { scroll: false });
+                    hasRestoredFromStorage.current = true;
+                  }
+                } else if (stored.address) {
+                  // Восстанавливаем адрес
+                  setAddressInput(stored.address);
+                  if (stored.lat && stored.lon) {
+                    setAddressCoords({ lat: stored.lat, lon: stored.lon });
+                  }
+                  const cityFromAddress = findCityInAddress(stored.address, data);
+                  if (cityFromAddress) {
+                    setSelected(cityFromAddress);
+                  }
+                  const newParams = new URLSearchParams(searchParams.toString());
+                  newParams.set("address", stored.address);
+                  if (stored.lat && stored.lon) {
+                    newParams.set("lat", String(stored.lat));
+                    newParams.set("lon", String(stored.lon));
+                  }
+                  if (cityFromAddress) {
+                    newParams.set("city", cityFromAddress.name);
+                  }
+                  router.replace(`?${newParams.toString()}`, { scroll: false });
+                  hasRestoredFromStorage.current = true;
+                }
+              }
+            } catch (error) {
+              console.error("Error restoring from localStorage:", error);
+            }
+          }
+        }
 
         // Читаем address или city из URL/локального хранилища
         const addressParam = searchParams.get("address");

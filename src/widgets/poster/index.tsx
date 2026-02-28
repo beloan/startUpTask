@@ -36,10 +36,9 @@ const Poster = () => {
   return (
     <section className="py-4 w-full h-52 flex">
       <Swiper
+        loop={true}
         slidesPerView={2.4}
         spaceBetween={16}
-        slidesOffsetAfter={16}
-        slidesOffsetBefore={16}
         pagination={{
           clickable: true,
         }}

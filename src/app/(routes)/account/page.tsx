@@ -5,7 +5,13 @@ import AccountPageContent from "./AccountPageContent";
 export const metadata: Metadata = {
   title: "Личный кабинет",
   description:
-    "Управляйте своими заказами, персональными данными и настройками в личном кабинете магазина «Быстро и точка».",
+    "Управляйте своими заказами, персональными данными и настройками в личном кабинете быстроИточка",
+  openGraph: {
+    title: "Личный кабинет | быстроИточка",
+    description: "Управляйте своими заказами, персональными данными и настройками в личном кабинете.",
+    url: "https://bystroi.ru/account",
+    images: ["/og-image.jpg"],
+  },
 };
 
 export default function Page() {

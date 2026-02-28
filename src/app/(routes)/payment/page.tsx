@@ -6,7 +6,13 @@ import PaymentPageContent from "./PaymentPageContent";
 export const metadata: Metadata = {
   title: "Оформление заказа",
   description:
-    "Заполните данные для доставки и оплатите заказ удобным способом. Быстрое оформление в магазине «Быстро и точка».",
+    "Заполните данные для доставки и оплатите заказ удобным способом. Быстрое оформление в быстроИточка.",
+  openGraph: {
+    title: "Оформление заказа | быстроИточка",
+    description: "Заполните данные для доставки и оплатите заказ удобным способом.",
+    url: "https://bystroi.ru/payment",
+    images: ["/og-image.jpg"],
+  },
 };
 
 export default function Page() {

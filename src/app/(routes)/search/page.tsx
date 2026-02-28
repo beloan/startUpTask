@@ -10,21 +10,36 @@ type Props = {
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { q, category } = await searchParams;
 
+  let title = "Поиск товаров";
+  let description = "Ищите товары по названию, категории или производителю в быстроИточка";
+  let url = "https://bystroi.ru/search";
+
   if (q) {
-    return {
-      title: `Поиск: ${q}`,
-      description: `Результаты поиска по запросу «${q}» в Быстро и точка.`,
-    };
+    title = `Поиск: ${q}`;
+    description = `Результаты поиска по запросу «${q}» в быстроИточка.`;
+    url = `https://bystroi.ru/search?q=${encodeURIComponent(q)}`;
+  } else if (category) {
+    title = `Товары в категории ${category}`;
+    description = `Купить товары в категории ${category}.`;
+    url = `https://bystroi.ru/search?category=${encodeURIComponent(category)}`;
   }
-  if (category) {
-    return {
-      title: `Товары в категории ${category}`,
-      description: `Купить товары в категории ${category}.`,
-    };
-  }
+
   return {
-    title: "Поиск товаров",
-    description: "Ищите товары по названию, категории или производителю в Быстро и точка.",
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      images: [
+        {
+          url: "/og-image.jpg",
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
   };
 }
 

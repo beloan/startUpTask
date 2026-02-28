@@ -14,17 +14,18 @@ import "./styles/globals.css";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
+// app/layout.tsx
 export const metadata: Metadata = {
   title: {
-    default: "Быстро и точка",
-    template: "%s | Быстро и точка"
+    default: "быстроИточка",
+    template: "%s | быстроИточка"
   },
-  description: "Интернет-магазин с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
-  keywords: ["интернет-магазин", "быстрая доставка", "покупки онлайн", "товары"],
-  authors: [{ name: "Быстро и точка" }],
+  description: "Маркетплейс с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
+  keywords: ["маркетплейс", "быстрая доставка", "покупки онлайн", "товары"],
+  authors: [{ name: "быстроИточка" }],
   openGraph: {
-    title: "Быстро и точка",
-    description: "Интернет-магазин с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
+    title: "быстроИточка",
+    description: "Маркетплейс с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
     url: "https://bystroi.ru",
     siteName: "bystroi.ru",
     images: [
@@ -39,8 +40,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Быстро и точка",
-    description: "Интернет-магазин с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
+    title: "быстроИточка",
+    description: "Маркетплейс с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
     images: ["/og-image.jpg"],
   },
   robots: {
