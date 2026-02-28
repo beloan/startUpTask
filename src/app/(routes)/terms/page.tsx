@@ -7,7 +7,12 @@ export const metadata: Metadata = {
     title: "Пользовательское соглашение | быстроИточка",
     description: "Ознакомьтесь с условиями использования сервиса быстроИточка.",
     url: "https://bystroi.ru/terms",
-    images: ["/og-image.jpg"],
+    images: ["/favicon.ico"],
+  },
+  twitter: {
+    title: "Пользовательское соглашение",
+    description: "Ознакомьтесь с условиями использования сервиса быстроИточка.",
+    images: ["/favicon.ico"],
   },
 };
 

@@ -30,7 +30,7 @@ export async function generateMetadata(
 
   if (!product) {
     return {
-      title: "Товар не найден | быстроИточка",
+      title: "Товар не найден",
       description: "Запрашиваемый товар не существует или был удалён.",
     };
   }
@@ -47,7 +47,7 @@ export async function generateMetadata(
         height: 800,
         alt: product.name,
       }))
-    : [{ url: "/og-image.jpg", width: 1200, height: 630 }];
+    : [{ url: "/favicon.ico", width: 1200, height: 630 }];
 
   const previous = await parent;
 
@@ -64,6 +64,12 @@ export async function generateMetadata(
       images,
       type: "website",
       locale: "ru_RU",
+    },
+
+    twitter: {
+      title: `${product.name} | быстроИточка`,
+      description,
+      images: images.map((i : any) => i.url),
     },
   };
 }

@@ -7,10 +7,15 @@ export const metadata: Metadata = {
   description:
     "Управляйте своими заказами, персональными данными и настройками в личном кабинете быстроИточка",
   openGraph: {
-    title: "Личный кабинет | быстроИточка",
+    title: "Личный кабинет",
     description: "Управляйте своими заказами, персональными данными и настройками в личном кабинете.",
     url: "https://bystroi.ru/account",
-    images: ["/og-image.jpg"],
+    images: ["/favicon.ico"],
+  },
+  twitter: {
+    title: "Личный кабинет",
+    description: "Управляйте своими заказами, персональными данными и настройками в личном кабинете.",
+    images: ["/favicon.ico"],
   },
 };
 

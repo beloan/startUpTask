@@ -40,7 +40,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       url,
       images: [
         {
-          url: "/og-image.jpg",
+          url: "/favicon.ico",
           width: 1200,
           height: 630,
           alt: title,

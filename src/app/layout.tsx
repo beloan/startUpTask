@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     siteName: "быстроИточка",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/favicon.ico",
         width: 1200,
         height: 630,
       },
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "быстроИточка",
     description: "Широкий ассортимент товаров по доступным ценам.",
-    images: ["/og-image.jpg"],
+    images: ["/favicon.ico"],
   },
   robots: {
     index: true,

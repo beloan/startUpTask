@@ -8,10 +8,16 @@ export const metadata: Metadata = {
   description:
     "Сохраняйте понравившиеся товары и возвращайтесь к ним позже. Управляйте списком избранного в быстроИточка.",
   openGraph: {
-    title: "Избранное | быстроИточка",
+    title: "Избранное",
     description: "Сохраняйте понравившиеся товары и возвращайтесь к ним позже.",
     url: "https://bystroi.ru/favorites",
-    images: ["/og-image.jpg"],
+    images: ["/favicon.ico"],
+  },
+
+  twitter: {
+    title: "Избранное",
+    description: "Сохраняйте понравившиеся товары и возвращайтесь к ним позже.",
+    images: ["/favicon.ico"],
   },
 };
 

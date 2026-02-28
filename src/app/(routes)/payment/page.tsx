@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: "Оформление заказа | быстроИточка",
     description: "Заполните данные для доставки и оплатите заказ удобным способом.",
     url: "https://bystroi.ru/payment",
-    images: ["/og-image.jpg"],
+    images: ["/favicon.ico"],
   },
 };
 

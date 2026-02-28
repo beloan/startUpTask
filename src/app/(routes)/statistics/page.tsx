@@ -3,12 +3,17 @@ import { Metadata } from "next";
 import SellerStatisticsPage from "./StatisticsPageContent";
 
 export const metadata: Metadata = {
-  title: "Статистика продавца | быстроИточка",
+  title: "Статистика продавца ",
   openGraph: {
     title: "Статистика продавца | быстроИточка",
     description: "Статистика продавца.",
     url: "https://bystroi.ru/statistics",
-    images: ["/og-image.jpg"],
+    images: ["/favicon.ico"],
+  },
+  twitter: {
+    title: "Статистика продавца",
+    description: "Статистика продавца.",
+    images: ["/favicon.ico"],
   },
 };
 
