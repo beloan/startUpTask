@@ -85,14 +85,15 @@ const SubscribeNewsletter = () => {
                     </div>
                     <Button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                      className="bg-blue-600 w-37 hover:bg-blue-700 cursor-pointer"
                       disabled={status === "loading"}
                     >
                       {status === "loading" ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
+                      ) : 
                         "Подписаться"
-                      )}
+                      }
+                     
                     </Button>
                   </form>
                   

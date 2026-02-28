@@ -37,19 +37,35 @@ export async function generateMetadata(
 
   const title = `${product.name} купить по цене ${product.price}₽`;
   const description = product.description ||
-    `Купить ${product.name} в магазине «Быстро и точка». ${product.category_name ? `Категория: ${product.category_name}.` : ''} Быстрая доставка.`;
+    `Купить ${product.name} в быстроИточка. ${product.category_name ? `Категория: ${product.category_name}.` : ''} Быстрая доставка.`;
+
+  const images = product.images?.length
+    ? product.images.map((img : string) => ({
+        url: img, 
+        width: 800,
+        height: 800,
+        alt: product.name,
+      }))
+    : [{
+        url: "/og-image.jpg", 
+        width: 1200,
+        height: 630,
+        alt: product.name,
+      }];
 
   return {
     title,
     description,
     keywords: [product.name, product.category_name, "купить", "цена", "доставка"].filter(Boolean),
     openGraph: {
-      title: `${product.name} | Быстро и точка`,
+      title: `${product.name} | быстроИточка`,
       description,
       url: `https://bystroi.ru/product/${id}`,
+      images,
     },
   };
 }
+
 
 interface PageProps {
   params: Promise<{ id: string }>;

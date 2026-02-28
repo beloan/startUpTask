@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Пользовательское соглашение",
-  description: "Ознакомьтесь с условиями использования сервиса «Быстро и точка».",
+  description: "Ознакомьтесь с условиями использования сервиса быстроИточка.",
+  openGraph: {
+    title: "Пользовательское соглашение | быстроИточка",
+    description: "Ознакомьтесь с условиями использования сервиса быстроИточка.",
+    url: "https://bystroi.ru/terms",
+    images: ["/og-image.jpg"],
+  },
 };
 
 export default function Docs() {

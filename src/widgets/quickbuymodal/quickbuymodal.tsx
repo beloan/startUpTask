@@ -122,7 +122,6 @@ const QuickBuyModal = ({
           }
         }
       } catch (error) {
-        // Игнорируем ошибки
       }
     }
 
@@ -176,15 +175,14 @@ const QuickBuyModal = ({
               <p className="font-medium truncate text-sm mb-3">{productName}</p>
               
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex-1">
+                <div className="w-full sm:w-40">
                   <div className="flex items-center justify-between mb-1">
                     <Label htmlFor="quantity" className="text-sm whitespace-nowrap text-gray-600">
                       Количество:
                     </Label>
-                    
                   </div>
 
-                  <div className="flex items-center w-full">
+                  <div className="flex items-center">
                     <Button
                       type="button"
                       variant="outline"
@@ -204,7 +202,7 @@ const QuickBuyModal = ({
                       max="99"
                       value={formData.quantity}
                       onChange={handleQuantityInputChange}
-                      className="flex-1 h-10 sm:h-8 text-center rounded-none border-x-0 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="h-10 sm:h-8 text-center rounded-none border-x-0 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       disabled={isLoading}
                     />
                     
@@ -221,15 +219,13 @@ const QuickBuyModal = ({
                   </div>
                 </div>
                 
-                <div className="flex flex-col mt-2 sm:mt-0">
-                  <div className="flex flex-col text-center mt-0 sm:mt-6 sm:flex-row items-center gap-1">
-                    <span className="text-lg text-center sm:text-xl text-black-600">
-                      {totalPrice.toLocaleString('ru-RU')}₽
-                    </span>
-                    <span className="text-xs text-center text-gray-500">
-                      {productPrice.toLocaleString('ru-RU')}₽/<span className="text-sm text-gray-500">{unitName}</span>
-                    </span>
-                  </div>
+                <div className="flex-1 flex flex-col items-start sm:items-end mt-2 sm:mt-0">
+                  <span className="text-lg sm:text-xl text-black-600">
+                    {totalPrice.toLocaleString('ru-RU')}₽
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {productPrice.toLocaleString('ru-RU')}₽/<span className="text-sm text-gray-500">{unitName}</span>
+                  </span>
                 </div>
               </div>
             </div>

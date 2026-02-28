@@ -65,20 +65,6 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2 text-gray-700">
-            <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="hidden md:inline-flex ml-2"
-          >
-            <a
-              href="https://t.me/tablecrmbot?start=referral_8169161833"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Бот
-            </a>
-          </Button>
             <Link href={withQuery("/favorites")} className="hidden md:flex relative">
               <Button size="icon" variant="ghost" className="cursor-pointer">
                 <Heart width={20} height={20} />

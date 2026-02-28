@@ -266,7 +266,7 @@ export const AddToCart = ({
   const isLoading = isLoadingProduct || addToCartMutation.isPending;
 
   return (
-    <div className="xl:max-w-[280px] min-w-[280px] mx-auto max-w-lg w-full border border-gray-200 rounded-lg p-4 h-fit">
+    <div className="xl:max-w-full min-w-[280px] mx-auto max-w-lg w-full border border-gray-200 rounded-lg p-4 h-fit">
       <p className="font-medium tracking-tight">Оформить заказ</p>
 
       {successMessage && (

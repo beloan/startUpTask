@@ -101,10 +101,13 @@ const Footer = () => {
                   <Link href="/">Главная</Link>
                 </li>
                 <li>
-                  <Link href="/about">О нас</Link>
-                </li>
-                <li>
-                  <Link href="/contacts">Контакты</Link>
+                  <a
+                    href="https://t.me/tablecrmbot?start=referral_8169161833"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Вход для селлеров
+                  </a>
                 </li>
                 <li>
                   <Link href="/terms">Политика конфиденциальности</Link>
