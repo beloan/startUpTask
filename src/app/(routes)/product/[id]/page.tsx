@@ -18,50 +18,52 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { id } = await params;
-  const { lat, lon, address, city } = await searchParams;
+  const resolvedSearchParams = await searchParams;
 
   const product = await fetchProductServer(
     id,
-    lat ? Number(lat) : undefined,
-    lon ? Number(lon) : undefined,
-    address ? String(address) : undefined,
-    city ? String(city) : undefined
+    resolvedSearchParams.lat ? Number(resolvedSearchParams.lat) : undefined,
+    resolvedSearchParams.lon ? Number(resolvedSearchParams.lon) : undefined,
+    resolvedSearchParams.address ? String(resolvedSearchParams.address) : undefined,
+    resolvedSearchParams.city ? String(resolvedSearchParams.city) : undefined
   );
 
   if (!product) {
     return {
-      title: "Товар не найден",
+      title: "Товар не найден | быстроИточка",
       description: "Запрашиваемый товар не существует или был удалён.",
     };
   }
 
   const title = `${product.name} купить по цене ${product.price}₽`;
-  const description = product.description ||
-    `Купить ${product.name} в быстроИточка. ${product.category_name ? `Категория: ${product.category_name}.` : ''} Быстрая доставка.`;
+  const description =
+    product.description ||
+    `Купить ${product.name} в быстроИточка. ${product.category_name ? `Категория: ${product.category_name}.` : ""} Быстрая доставка.`;
 
   const images = product.images?.length
-    ? product.images.map((img : string) => ({
-        url: img, 
+    ? product.images.map((img: string) => ({
+        url: img.startsWith("http") ? img : `https://bystroi.ru${img.startsWith("/") ? "" : "/"}${img}`,
         width: 800,
         height: 800,
         alt: product.name,
       }))
-    : [{
-        url: "/og-image.jpg", 
-        width: 1200,
-        height: 630,
-        alt: product.name,
-      }];
+    : [{ url: "/og-image.jpg", width: 1200, height: 630 }];
+
+  const previous = await parent;
 
   return {
     title,
     description,
     keywords: [product.name, product.category_name, "купить", "цена", "доставка"].filter(Boolean),
+
     openGraph: {
+      ...previous.openGraph,
       title: `${product.name} | быстроИточка`,
       description,
       url: `https://bystroi.ru/product/${id}`,
       images,
+      type: "website",
+      locale: "ru_RU",
     },
   };
 }

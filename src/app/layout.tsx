@@ -14,7 +14,6 @@ import "./styles/globals.css";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
-// app/layout.tsx
 export const metadata: Metadata = {
   title: {
     default: "быстроИточка",
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
     title: "быстроИточка",
     description: "Маркетплейс с быстрой доставкой.",
     url: "https://bystroi.ru",
-    siteName: "bystroi.ru",
+    siteName: "быстроИточка",
     images: [
       {
         url: "/og-image.jpg",
