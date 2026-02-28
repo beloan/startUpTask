@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   authors: [{ name: "быстроИточка" }],
   openGraph: {
     title: "быстроИточка",
-    description: "Маркетплейс с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
+    description: "Маркетплейс с быстрой доставкой.",
     url: "https://bystroi.ru",
     siteName: "bystroi.ru",
     images: [
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "быстроИточка",
-    description: "Маркетплейс с быстрой доставкой. Широкий ассортимент товаров по доступным ценам.",
+    description: "Широкий ассортимент товаров по доступным ценам.",
     images: ["/og-image.jpg"],
   },
   robots: {
