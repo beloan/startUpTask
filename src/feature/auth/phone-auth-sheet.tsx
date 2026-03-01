@@ -3,6 +3,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { PhoneInput } from "react-international-phone";
+import "react-international-phone/style.css";
+
 import { Button } from "@/shared/ui/kit/button";
 import { Input } from "@/shared/ui/kit/input";
 import { useAuthStore } from "@/entities/user";
@@ -15,7 +18,7 @@ interface PhoneAuthSheetProps {
 }
 
 export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetProps) => {
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState<string | undefined>("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();
   const [mounted, setMounted] = useState(false);
@@ -38,7 +41,6 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
     return () => setMounted(false);
   }, []);
 
-  // Блокировка скролла + ESC
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -57,30 +59,23 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
     if (e.key === "Escape") onClose();
   };
 
-  // Логика перетаскивания
+  // Логика перетаскивания (без изменений)
   const handlePointerMove = (e: PointerEvent) => {
     if (!isDragging.current) return;
-
     const clientX = e.clientX;
     const now = Date.now();
     const deltaTime = Math.max(now - lastTime.current, 1);
     const deltaX = clientX - lastX.current;
-
     velocity.current = deltaX / deltaTime;
-
     lastX.current = clientX;
     lastTime.current = now;
-
     let newTranslate = clientX - startX.current;
     const maxWidth = widthRef.current;
-
     if (newTranslate > maxWidth) {
       const overscroll = newTranslate - maxWidth;
       newTranslate = maxWidth + overscroll * 0.38;
     }
-
     newTranslate = Math.max(0, newTranslate);
-
     currentTranslate.current = newTranslate;
     if (drawerRef.current) {
       drawerRef.current.style.transform = `translateX(${newTranslate}px)`;
@@ -89,28 +84,21 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
 
   const handlePointerUp = (e: PointerEvent) => {
     if (!isDragging.current) return;
-
     const translate = currentTranslate.current;
     const vel = velocity.current;
     const width = widthRef.current;
-
     const shouldClose = translate > width * THRESHOLD || vel > VELOCITY_THRESHOLD;
-
     if (handleRef.current) {
       handleRef.current.releasePointerCapture(e.pointerId);
     }
     handleRef.current?.removeEventListener("pointermove", handlePointerMove);
     handleRef.current?.removeEventListener("pointerup", handlePointerUp);
     handleRef.current?.removeEventListener("pointercancel", handlePointerCancel);
-
     isDragging.current = false;
-
     if (shouldClose) {
-      onClose(); // закрываем – exit анимация сделает своё дело
-    } else {
-      if (drawerRef.current) {
-        drawerRef.current.style.transform = "";
-      }
+      onClose();
+    } else if (drawerRef.current) {
+      drawerRef.current.style.transform = "";
     }
   };
 
@@ -129,23 +117,18 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType !== "touch") return;
-
     e.preventDefault();
     e.stopPropagation();
-
     const rect = drawerRef.current?.getBoundingClientRect();
     widthRef.current = rect?.width || 420;
-
     startX.current = e.clientX;
     lastX.current = e.clientX;
     lastTime.current = Date.now();
     velocity.current = 0;
     currentTranslate.current = 0;
     isDragging.current = true;
-
     const target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
-
     target.addEventListener("pointermove", handlePointerMove as EventListener);
     target.addEventListener("pointerup", handlePointerUp as EventListener);
     target.addEventListener("pointercancel", handlePointerCancel as EventListener);
@@ -153,11 +136,12 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) return;
+    const rawPhone = phone?.replace(/\D/g, "");
+    if (!rawPhone || rawPhone.length < 11) return;
 
     setIsLoading(true);
     try {
-      login(phone, "buyer");
+      await login(rawPhone, "buyer");
       toast.success("Вы успешно вошли");
       onSuccess?.();
       onClose();
@@ -201,21 +185,25 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
               <div className="w-1 h-20 bg-gray-300 rounded-full" />
             </div>
             <div className="flex-1 pt-8 pb-6 px-6 overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-8">Вход по номеру телефона</h2>
+              <h2 className="text-xl font-semibold mb-2">Вход по номеру телефона</h2>
+              <p className="text-sm text-gray-500 mb-8">
+                Мы отправим код подтверждения на указанный номер
+              </p>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <Input
-                  type="tel"
+                <PhoneInput
                   placeholder="+7 (999) 123-45-67"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={setPhone}
+                  defaultCountry="ru"
                   disabled={isLoading}
-                  required
-                  className="text-lg h-10"
+                  inputProps={{
+                    className: "w-full border-1 border-[#dcdcdc] rounded-r-sm pl-3",
+                  }}
                 />
                 <Button
                   type="submit"
                   className="w-full h-10 text-sm bg-blue-600 hover:bg-blue-700"
-                  disabled={isLoading}
+                  disabled={isLoading || (phone?.replace(/\D/g, "").length || 0) < 11}
                 >
                   {isLoading ? "Вход..." : "Продолжить"}
                 </Button>

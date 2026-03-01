@@ -32,8 +32,7 @@ const generateMockUser = (phone: string, type: string): User => {
   
   const buyerData = {
     id,
-    name: `Иван Иванов`,
-    email: `buyer${id}@example.com`,
+    name: `Покупатель`,
     contragent_phone: phone,
     type: 'buyer' as const,
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`,
@@ -42,8 +41,7 @@ const generateMockUser = (phone: string, type: string): User => {
 
   const sellerData = {
     id,
-    name: `Александр Предприниматель`,
-    email: `seller${id}@company.com`,
+    name: `Продавец`,
     contragent_phone: phone,
     type: 'seller' as const,
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${id + 1000}`,

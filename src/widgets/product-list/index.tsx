@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
+import { motion } from "framer-motion";
 
 import { ProductCard } from "@/entities/product/ui";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
@@ -14,9 +15,24 @@ interface ProductsListProps {
   onTotalCountChange?: (count: number) => void;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
 const ProductsList: React.FC<ProductsListProps> = ({ 
   params, 
-  onTotalCountChange
+  onTotalCountChange 
 }) => {
   const {
     data,
@@ -61,11 +77,18 @@ const ProductsList: React.FC<ProductsListProps> = ({
   if (isLoading) {
     return (
       <div className="flex-1">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <motion.div 
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+        >
           {Array.from({ length: 20 }).map((_, i) => (
-            <ProductCardSkeleton key={i} />
+            <motion.div key={i} variants={itemVariants}>
+              <ProductCardSkeleton />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -99,20 +122,37 @@ const ProductsList: React.FC<ProductsListProps> = ({
 
   return (
     <div className="flex-1">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <motion.div 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+        variants={containerVariants}
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+      >
         {data?.pages.map((page) => (
           <React.Fragment key={page.page}>
             {page?.result?.map((product: Product) => (
-              <ProductCard {...product} key={product.id} />
+              <motion.div key={product.id} variants={itemVariants}>
+                <ProductCard {...product} />
+              </motion.div>
             ))}
           </React.Fragment>
         ))}
-
-        {isFetchingNextPage &&
-          Array.from({ length: 5 }).map((_, index) => (
-            <ProductCardSkeleton key={`loader-${index}`} />
+      </motion.div>
+      {isFetchingNextPage && (
+        <motion.div 
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-3"
+        >
+          {Array.from({ length: 5 }).map((_, index) => (
+            <motion.div key={`loader-${index}`} variants={itemVariants}>
+              <ProductCardSkeleton />
+            </motion.div>
           ))}
-      </div>
+        </motion.div>
+      )}
 
       {hasNextPage && (
         <div ref={ref} className="h-10 w-full bg-transparent" />

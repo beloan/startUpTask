@@ -6,6 +6,7 @@ import { SlidersHorizontal } from "lucide-react";
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+import { motion } from 'framer-motion';
 
 import { Filter } from "@/widgets/filter";
 import ProductsList from "@/widgets/product-list";
@@ -58,7 +59,16 @@ function ProductsContent() {
   const city = searchParams.get('city'); 
   const lat = searchParams.get('lat');
   const lon = searchParams.get('lon');
-  
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
   
   const sellerParams = useMemo(() => {
     const baseParams: any = {
@@ -207,10 +217,22 @@ function ProductsContent() {
           categoryName={categoryName || null}
         />
         <div className="flex flex-col gap-2 md:flex-row md:justify-between">
-          <h1 className="text-lg font-medium tracking-tight">
-            {categoryName || "Категория"} ({totalCount !== null ? totalCount : "..."}) 
-          </h1>
-          <div className="flex gap-2 pb-4">
+          <motion.h1
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-lg font-medium tracking-tight"
+          >
+            {categoryName || "Категория"} ({totalCount !== null ? totalCount : "..."})
+          </motion.h1>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="flex gap-2 pb-4"
+          >
             <Select
               value={currentSortType}
               onValueChange={applySort}
@@ -246,7 +268,7 @@ function ProductsContent() {
                 />
               </DialogContent>
             </Dialog>
-          </div>
+          </motion.div>
         </div>
         <ActiveFilters onFiltersChange={() => {}} />
         <div className="flex pt-4 relative">
@@ -259,10 +281,18 @@ function ProductsContent() {
               manufacturers={manufacturers}
             />
           </div>
-          <ProductsList 
-            params={listParams} 
-            onTotalCountChange={setTotalCount}
-          />
+           <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="flex-1"
+          >
+            <ProductsList 
+              params={listParams} 
+              onTotalCountChange={setTotalCount}
+            />
+          </motion.div>
         </div>
       </div>
     </div>
