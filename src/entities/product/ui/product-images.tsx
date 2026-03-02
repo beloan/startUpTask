@@ -117,9 +117,17 @@ export const ProductImages = ({ images }: Props) => {
     setTouchEndX(null);
   }, [touchStartX, touchEndX, hasMultipleImages, nextImage, prevImage]);
 
+
   const handleModalBackgroundClick = useCallback(
     (e: React.MouseEvent) => {
       if (modalRef.current && e.target === modalRef.current) closeModal();
+    },
+    [closeModal],
+  );
+
+  const handleModalBackgroundTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (modalRef.current && e.target === modalRef.current) closeModal(e);
     },
     [closeModal],
   );
@@ -196,67 +204,21 @@ export const ProductImages = ({ images }: Props) => {
 
       {isModalOpen && transformedImages.length > 0 && (
         <div
-          ref={modalRef}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={handleModalBackgroundClick}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          className="fixed inset-0 z-50 bg-black/90"
+          onClick={closeModal} 
+          onTouchEnd={closeModal}  
         >
-          <div className="relative w-full h-full flex items-center justify-center">
-            <Button
-              onClick={closeModal}
-              className="absolute top-4 right-4 z-50 size-11 cursor-pointer bg-black/50 border-none text-white transition-all duration-200 hover:scale-110"
-              variant="outline"
-              aria-label="Закрыть"
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                closeModal(e);
-              }}
-            >
-              <X size={24} />
-            </Button>
-
-            {hasMultipleImages && (
-              <>
-                <Button
-                  onClick={prevImage}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 size-10 bg-black/50 hover:bg-black/70 border-none text-white transition-all duration-200 hover:scale-110 hidden md:flex"
-                  variant="outline"
-                  aria-label="Предыдущее изображение"
-                  disabled={isTransitioning}
-                >
-                  <ChevronLeft size={24} />
-                </Button>
-                <Button
-                  onClick={nextImage}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 size-10 bg-black/50 hover:bg-black/70 border-none text-white transition-all duration-200 hover:scale-110 hidden md:flex"
-                  variant="outline"
-                  aria-label="Следующее изображение"
-                  disabled={isTransitioning}
-                >
-                  <ChevronRight size={24} />
-                </Button>
-
-                <button
-                  onClick={prevImage}
-                  className="absolute left-0 top-35 bottom-0 w-1/3 z-40 h-1/2 bg-transparent cursor-pointer focus:outline-none"
-                  aria-label="Предыдущее изображение (нажать слева)"
-                  disabled={isTransitioning}
-                />
-                <button
-                  onClick={nextImage}
-                  className="absolute right-0 top-35 bottom-0 w-1/3 h-1/2 z-40 bg-transparent cursor-pointer focus:outline-none"
-                  aria-label="Следующее изображение (нажать справа)"
-                  disabled={isTransitioning}
-                />
-              </>
-            )}
-
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+          <div
+            className="relative w-300 h-full m-auto flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}            
+            onTouchStart={handleTouchStart}                
+            onTouchMove={handleTouchMove}
+            onTouchEnd={(e) => {
+              e.stopPropagation();                        
+              handleTouchEnd();                               
+            }}
+          >
+            <div className="relative w-300 h-full flex items-center justify-center overflow-hidden">
               {transformedImages.map((img, index) => (
                 <div
                   key={index}
@@ -278,21 +240,72 @@ export const ProductImages = ({ images }: Props) => {
                     src={img}
                     alt={`Product image ${index + 1}`}
                     fill
-                    className="object-contain"
-                    sizes="100vw"
+                    className="object-contain w-10"
+                    sizes="50vw"
                     priority={index === currentImageIndex}
                   />
                 </div>
               ))}
             </div>
+          </div>
+          <Button
+              onClick={closeModal}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeModal(e);
+              }}
+              className="absolute top-4 right-4 z-50 size-11 cursor-pointer bg-black/50 border-none text-white transition-all duration-200 hover:scale-110"
+              variant="outline"
+              aria-label="Закрыть"
+            >
+              <X size={24} />
+            </Button>
 
             {hasMultipleImages && (
               <>
+                <Button
+                  onClick={prevImage}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 size-10 bg-black/50 hover:bg-black/70 border-none text-white transition-all duration-200 hover:scale-110 hidden md:flex"
+                  variant="outline"
+                  aria-label="Предыдущее изображение"
+                  disabled={isTransitioning}
+                >
+                  <ChevronLeft size={24} />
+                </Button>
+                <Button
+                  onClick={nextImage}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 size-10 bg-black/50 hover:bg-black/70 border-none text-white transition-all duration-200 hover:scale-110 hidden md:flex"
+                  variant="outline"
+                  aria-label="Следующее изображение"
+                  disabled={isTransitioning}
+                >
+                  <ChevronRight size={24} />
+                </Button>
+
+                <button
+                  onClick={prevImage}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="absolute left-0 top-35 bottom-0 w-1/3 z-40 h-1/2 bg-transparent cursor-pointer focus:outline-none"
+                  aria-label="Предыдущее изображение (нажать слева)"
+                  disabled={isTransitioning}
+                />
+                <button
+                  onClick={nextImage}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-35 bottom-0 w-1/3 h-1/2 z-40 bg-transparent cursor-pointer focus:outline-none"
+                  aria-label="Следующее изображение (нажать справа)"
+                  disabled={isTransitioning}
+                />
+
                 <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
                   {transformedImages.map((_, index) => (
                     <button
                       key={index}
                       onClick={(e) => handleThumbnailClick(index, e)}
+                      onTouchEnd={(e) => e.stopPropagation()}
                       className={`w-3 h-3 rounded-full transition-all ${
                         index === currentImageIndex
                           ? "bg-white scale-110"
@@ -303,12 +316,12 @@ export const ProductImages = ({ images }: Props) => {
                     />
                   ))}
                 </div>
+
                 <div className="absolute bottom-6 right-6 text-white text-sm bg-black/40 px-3 py-1 rounded-full z-10">
                   {currentImageIndex + 1} / {transformedImages.length}
                 </div>
               </>
             )}
-          </div>
         </div>
       )}
     </>

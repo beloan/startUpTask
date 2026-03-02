@@ -7,7 +7,6 @@ import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
 import { Button } from "@/shared/ui/kit/button";
-import { Input } from "@/shared/ui/kit/input";
 import { useAuthStore } from "@/entities/user";
 import { toast } from "sonner";
 
@@ -22,19 +21,29 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const drawerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
-  const startX = useRef(0);
+  const startPos = useRef(0);      
   const currentTranslate = useRef(0);
-  const lastX = useRef(0);
+  const lastPos = useRef(0);       
   const lastTime = useRef(0);
   const velocity = useRef(0);
-  const widthRef = useRef(420);
+  const sizeRef = useRef(420);
 
   const THRESHOLD = 0.28;
   const VELOCITY_THRESHOLD = 0.75;
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -59,42 +68,49 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
     if (e.key === "Escape") onClose();
   };
 
-  // Логика перетаскивания (без изменений)
   const handlePointerMove = (e: PointerEvent) => {
     if (!isDragging.current) return;
-    const clientX = e.clientX;
+
+    const clientPos = isMobile ? e.clientY : e.clientX;
     const now = Date.now();
     const deltaTime = Math.max(now - lastTime.current, 1);
-    const deltaX = clientX - lastX.current;
-    velocity.current = deltaX / deltaTime;
-    lastX.current = clientX;
+    const deltaPos = clientPos - lastPos.current;
+    velocity.current = deltaPos / deltaTime;
+    lastPos.current = clientPos;
     lastTime.current = now;
-    let newTranslate = clientX - startX.current;
-    const maxWidth = widthRef.current;
-    if (newTranslate > maxWidth) {
-      const overscroll = newTranslate - maxWidth;
-      newTranslate = maxWidth + overscroll * 0.38;
+
+    let newTranslate = clientPos - startPos.current;
+    const maxSize = sizeRef.current;
+    if (newTranslate > maxSize) {
+      const overscroll = newTranslate - maxSize;
+      newTranslate = maxSize + overscroll * 0.38;
     }
     newTranslate = Math.max(0, newTranslate);
     currentTranslate.current = newTranslate;
+
     if (drawerRef.current) {
-      drawerRef.current.style.transform = `translateX(${newTranslate}px)`;
+      const translateProp = isMobile ? `translateY(${newTranslate}px)` : `translateX(${newTranslate}px)`;
+      drawerRef.current.style.transform = translateProp;
     }
   };
 
   const handlePointerUp = (e: PointerEvent) => {
     if (!isDragging.current) return;
+
     const translate = currentTranslate.current;
     const vel = velocity.current;
-    const width = widthRef.current;
-    const shouldClose = translate > width * THRESHOLD || vel > VELOCITY_THRESHOLD;
+    const maxSize = sizeRef.current;
+    const shouldClose = translate > maxSize * THRESHOLD || vel > VELOCITY_THRESHOLD;
+
     if (handleRef.current) {
       handleRef.current.releasePointerCapture(e.pointerId);
     }
     handleRef.current?.removeEventListener("pointermove", handlePointerMove);
     handleRef.current?.removeEventListener("pointerup", handlePointerUp);
     handleRef.current?.removeEventListener("pointercancel", handlePointerCancel);
+
     isDragging.current = false;
+
     if (shouldClose) {
       onClose();
     } else if (drawerRef.current) {
@@ -119,14 +135,22 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
     if (e.button !== 0 && e.pointerType !== "touch") return;
     e.preventDefault();
     e.stopPropagation();
+
     const rect = drawerRef.current?.getBoundingClientRect();
-    widthRef.current = rect?.width || 420;
-    startX.current = e.clientX;
-    lastX.current = e.clientX;
+    if (isMobile) {
+      sizeRef.current = rect?.height || window.innerHeight * 0.9;
+    } else {
+      sizeRef.current = rect?.width || 420;
+    }
+
+    const clientPos = isMobile ? e.clientY : e.clientX;
+    startPos.current = clientPos;
+    lastPos.current = clientPos;
     lastTime.current = Date.now();
     velocity.current = 0;
     currentTranslate.current = 0;
     isDragging.current = true;
+
     const target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
     target.addEventListener("pointermove", handlePointerMove as EventListener);
@@ -136,8 +160,8 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const rawPhone = phone?.replace(/\D/g, "");
-    if (!rawPhone || rawPhone.length < 11) return;
+    const rawPhone = "+" + phone?.replace(/\D/g, "");
+    if (!rawPhone || rawPhone.length < 12) return;
 
     setIsLoading(true);
     try {
@@ -154,6 +178,12 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
 
   if (!mounted) return null;
 
+  const drawerVariants = {
+    hidden: isMobile ? { y: "100%" } : { x: "100%" },
+    visible: isMobile ? { y: 0 } : { x: 0 },
+    exit: isMobile ? { y: "100%" } : { x: "100%" },
+  };
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -165,37 +195,64 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="fixed inset-0 bg-black z-50"
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
           />
+
           <motion.div
             key="drawer"
             ref={drawerRef}
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+            variants={drawerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             transition={{ type: "tween", duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed top-0 right-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-[60] flex flex-col overflow-hidden rounded-l-xl will-change-transform"
+            className={cn(
+              "fixed bg-white shadow-2xl z-[60] overflow-hidden will-change-transform",
+              isMobile
+                ? "bottom-0 left-0 w-full rounded-t-xl"
+                : "top-0 right-0 h-full w-full max-w-[420px] rounded-l-xl"
+            )}
+            style={isMobile ? { maxHeight: "90vh" } : {}}
           >
+            {/* Универсальная ручка для перетаскивания */}
             <div
               ref={handleRef}
               onPointerDown={handlePointerDown}
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-24 bg-transparent flex items-center justify-center touch-none select-none cursor-grabbing z-50"
-              title="Потяните вправо, чтобы закрыть"
+              className={cn(
+                "absolute bg-transparent flex items-center justify-center touch-none select-none cursor-grab z-50",
+                isMobile
+                  ? "top-0 left-1/2 -translate-x-1/2 w-24 h-10"
+                  : "left-0 top-1/2 -translate-y-1/2 w-10 h-24"
+              )}
+              title={isMobile ? "Потяните вниз, чтобы закрыть" : "Потяните вправо, чтобы закрыть"}
             >
-              <div className="w-1 h-20 bg-gray-300 rounded-full" />
+              <div
+                className={cn(
+                  "bg-gray-300 rounded-full",
+                  isMobile ? "w-20 h-1" : "w-1 h-20"
+                )}
+              />
             </div>
-            <div className="flex-1 pt-8 pb-6 px-6 overflow-y-auto">
+
+            {/* Контент */}
+            <div className={cn("overflow-y-auto", isMobile ? "pt-12 pb-6 px-4" : "pt-8 pb-6 px-6")}>
               <h2 className="text-xl font-semibold mb-2">Вход по номеру телефона</h2>
-              <p className="text-sm text-gray-500 mb-8">
+              <p className="text-sm text-gray-500 mb-4">
                 Мы отправим код подтверждения на указанный номер
               </p>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <PhoneInput
                   placeholder="+7 (999) 123-45-67"
                   value={phone}
                   onChange={setPhone}
                   defaultCountry="ru"
                   disabled={isLoading}
+                  countrySelectorStyleProps={{
+                    buttonStyle: { paddingLeft: "7px", paddingRight: "2px" },
+                  }}
                   inputProps={{
                     className: "w-full border-1 border-[#dcdcdc] rounded-r-sm pl-3",
                   }}
@@ -215,4 +272,9 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
     </AnimatePresence>,
     document.body
   );
+};
+
+// Вспомогательная функция для условных классов
+const cn = (...classes: (string | boolean | undefined)[]) => {
+  return classes.filter(Boolean).join(" ");
 };

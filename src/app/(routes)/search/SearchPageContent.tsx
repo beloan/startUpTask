@@ -111,6 +111,7 @@ function SearchPageContent() {
 
   const clearSearch = () => {
     setSearchInput("");
+    router.push("/search");
   };
 
   const searchProducts = async () => {
