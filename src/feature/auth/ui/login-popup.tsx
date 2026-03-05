@@ -124,6 +124,9 @@ export const LoginPopup: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) 
               onChange={setPhone}
               defaultCountry="ru"
               disabled={isLoading}
+              countrySelectorStyleProps={{
+                buttonStyle: { paddingLeft: "7px", paddingRight: "2px" },
+              }}
               inputProps={{
                 className: "w-full border-1 border-[#dcdcdc] rounded-r-sm pl-3",
               }}
