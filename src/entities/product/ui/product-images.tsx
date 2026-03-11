@@ -234,7 +234,7 @@ function VideoPlayerModal({ item }: { item: MediaItemVideo }) {
         poster={item.posterUrl}
         controls
         autoPlay
-        className="w-full h-full aspect-video object-contain bg-transparent"
+        className="w-full h-full aspect-square object-cover bg-transparent"
       />
     );
   }
@@ -247,7 +247,7 @@ function VideoPlayerModal({ item }: { item: MediaItemVideo }) {
         controls
         autoPlay
         playsInline
-        className="w-full h-full aspect-video object-contain bg-transparent"
+        className="w-full h-full aspect-square object-contain bg-transparent"
       />
     );
   }
