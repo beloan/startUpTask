@@ -105,7 +105,7 @@ function VideoPlayer({ item, inModal }: { item: MediaItemVideo; inModal: boolean
       <video
         src={item.embedUrl}
         controls
-        className={`w-full ${height} object-contain bg-black`}
+        className={`w-full h-full aspect-video object-cover bg-black`}
         playsInline
       />
     );
