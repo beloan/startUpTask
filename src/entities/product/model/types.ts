@@ -1,5 +1,14 @@
 import { ListParams, Warehouse } from "@/shared/types";
 
+export type ProductVideo = {
+  id: number;
+  url: string;
+  description?: string;
+  tags?: string[];
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type Product = {
   id: number;
   name: string;
@@ -18,6 +27,7 @@ export type Product = {
   created_at?: string;
   updated_at?: string;
   images: string[];
+  videos?: ProductVideo[];
   barcodes?: string[];
   type?: string;
   distance?: number;
@@ -76,8 +86,8 @@ export interface GetProductsDto {
   sort_type?: SortType;
   page?: number;
   global_category_id?: number;
-  city?: string; // Обратная совместимость
-  address?: string; // Полный адрес доставки (приоритет над city)
+  city?: string;
+  address?: string;
   seller_id?: number;
 }
 
