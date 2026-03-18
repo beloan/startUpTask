@@ -1,22 +1,22 @@
 "use client";
 
-import { Search, Filter, ChevronDown, X } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
-import React, { useState, useEffect, Suspense } from "react";
-import { useInView } from "react-intersection-observer";
-
-import { ProductCard } from "@/entities/product";
-import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
-
-import { Button } from "@/shared/ui/kit/button";
-import { Input } from "@/shared/ui/kit/input";
-import { Badge } from "@/shared/ui/kit/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@radix-ui/react-dropdown-menu";
+import { ChevronDown, Filter, Search, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
+import { useInView } from "react-intersection-observer";
+
+import { ProductCard } from "@/entities/product";
+import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
+
+import { Badge } from "@/shared/ui/kit/badge";
+import { Button } from "@/shared/ui/kit/button";
+import { Input } from "@/shared/ui/kit/input";
 import {
   Select,
   SelectContent,
@@ -54,10 +54,9 @@ function SearchPageContent() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Intersection Observer для триггера загрузки следующей страницы
-  const { ref: loadMoreRef, inView } = useInView({
-    threshold: 0.5,
-    rootMargin: "100px",
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: "1000px",
   });
 
   useEffect(() => {
@@ -104,7 +103,7 @@ function SearchPageContent() {
   const loadCategories = async () => {
     try {
       const response = await fetch(
-        "https://app.tablecrm.com/api/v1/mp/categories/"
+        "https://app.tablecrm.com/api/v1/mp/categories/",
       );
       if (response.ok) {
         const data = await response.json();
@@ -122,7 +121,7 @@ function SearchPageContent() {
       (product) =>
         product.name.toLowerCase().includes(lowerQuery) ||
         product.category_name?.toLowerCase().includes(lowerQuery) ||
-        product.manufacturer_name?.toLowerCase().includes(lowerQuery)
+        product.manufacturer_name?.toLowerCase().includes(lowerQuery),
     );
   };
 
@@ -209,7 +208,7 @@ function SearchPageContent() {
       }
 
       const response = await fetch(
-        `https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`
+        `https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`,
       );
 
       if (!response.ok) {
@@ -530,7 +529,7 @@ function SearchPageContent() {
 
               {/* Триггер для бесконечной прокрутки */}
               {hasMore && !loading && (
-                <div ref={loadMoreRef} className="h-10 w-full" />
+                <div ref={ref} className="h-10 w-full" />
               )}
             </>
           ) : (
