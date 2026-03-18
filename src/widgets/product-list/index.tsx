@@ -43,7 +43,8 @@ const ProductsList: React.FC<ProductsListProps> = ({
   });
 
   const { ref, inView } = useInView({
-    threshold: 0.5,
+    threshold: 0,
+    rootMargin: "1000px",
   });
 
   useEffect(() => {
