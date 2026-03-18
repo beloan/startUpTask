@@ -19,7 +19,7 @@ type MediaItemVideo = {
 };
 type MediaItem = MediaItemImage | MediaItemVideo;
 
-function parseVideoUrl(url: string): Omit<MediaItemVideo, "kind"> {
+function parseVideoUrl(url: string, version: number): Omit<MediaItemVideo, "kind"> {
   const interesnoMatch = url.match(/interesnoitochka\.ru\/(?:video|feed-mobile)\/(\d+)/);
   if (interesnoMatch) {
     const id = interesnoMatch[1];
@@ -27,7 +27,7 @@ function parseVideoUrl(url: string): Omit<MediaItemVideo, "kind"> {
       url,
       videoType: "hls",
       embedUrl: `https://interesnoitochka.ru/api/v1/videos/video/${id}/hls/playlist.m3u8`,
-      posterUrl: `https://interesnoitochka.ru/api/v1/videos/video/${id}?preview=true&_=${Date.now()}`,
+      posterUrl: `https://interesnoitochka.ru/api/v1/videos/video/${id}?preview=true&v=${version}`,
     };
   }
 
@@ -39,7 +39,7 @@ function parseVideoUrl(url: string): Omit<MediaItemVideo, "kind"> {
       url,
       videoType: "youtube",
       embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`,
-      posterUrl: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`,
+      posterUrl: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg?v=${version}`,
     };
   }
 
@@ -55,15 +55,15 @@ function parseVideoUrl(url: string): Omit<MediaItemVideo, "kind"> {
   return { url, videoType: "direct", embedUrl: url };
 }
 
-function buildMediaList(images: string[], videos?: ProductVideo[]): MediaItem[] {
+function buildMediaList(images: string[], videos: ProductVideo[] | undefined, version: number): MediaItem[] {
   const videoItems: MediaItemVideo[] = (videos ?? []).map((v) => ({
     kind: "video",
-    ...parseVideoUrl(v.url),
+    ...parseVideoUrl(v.url, version),
   }));
 
   const imageItems: MediaItemImage[] = (images ?? []).map((img) => ({
     kind: "image",
-    url: transformImageUrl(img),
+    url: transformImageUrl(img) + `?v=${version}`,
   }));
 
   return [...videoItems, ...imageItems];
@@ -272,7 +272,9 @@ function VideoPlayerModal({ item }: { item: MediaItemVideo }) {
 type Props = Pick<Product, "images" | "videos">;
 
 export const ProductImages = ({ images, videos }: Props) => {
-  const mediaList = buildMediaList(images, videos);
+  const [version] = useState(() => Date.now());
+
+  const mediaList = buildMediaList(images, videos, version);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);

@@ -2,7 +2,8 @@
 
 import { Search, Filter, ChevronDown, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import React, { useState, useEffect, Suspense, useCallback } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useInView } from "react-intersection-observer";
 
 import { ProductCard } from "@/entities/product";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
@@ -53,6 +54,12 @@ function SearchPageContent() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  // Intersection Observer для триггера загрузки следующей страницы
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0.5,
+    rootMargin: "100px",
+  });
+
   useEffect(() => {
     setFilters({
       category: category,
@@ -70,6 +77,7 @@ function SearchPageContent() {
     { value: "newest", label: "Новое" },
   ];
 
+  // Сброс и загрузка при изменении параметров поиска
   useEffect(() => {
     if (query) {
       setPage(1);
@@ -79,11 +87,19 @@ function SearchPageContent() {
     }
   }, [query, category, minPrice, maxPrice, sortBy]);
 
+  // Загрузка следующей страницы при изменении номера страницы
   useEffect(() => {
     if (query && page > 1) {
       searchProducts();
     }
   }, [page]);
+
+  // Автоматическая подгрузка при достижении триггера
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      setPage((prev) => prev + 1);
+    }
+  }, [inView, hasMore, loading]);
 
   const loadCategories = async () => {
     try {
@@ -102,10 +118,11 @@ function SearchPageContent() {
   const filterProductsByQuery = (products: any[], query: string) => {
     if (!query.trim()) return products;
     const lowerQuery = query.toLowerCase();
-    return products.filter(product => 
-      product.name.toLowerCase().includes(lowerQuery) ||
-      product.category_name?.toLowerCase().includes(lowerQuery) ||
-      product.manufacturer_name?.toLowerCase().includes(lowerQuery)
+    return products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(lowerQuery) ||
+        product.category_name?.toLowerCase().includes(lowerQuery) ||
+        product.manufacturer_name?.toLowerCase().includes(lowerQuery)
     );
   };
 
@@ -165,9 +182,9 @@ function SearchPageContent() {
 
       if (lat) {
         params.append("lat", lat);
-      } else if (typeof window !== 'undefined') {
+      } else if (typeof window !== "undefined") {
         try {
-          const detected = sessionStorage.getItem('detected_city');
+          const detected = sessionStorage.getItem("detected_city");
           if (detected) {
             const parsed = JSON.parse(detected);
             if (parsed.lat != null) {
@@ -176,12 +193,12 @@ function SearchPageContent() {
           }
         } catch (e) {}
       }
-      
+
       if (lon) {
         params.append("lon", lon);
-      } else if (typeof window !== 'undefined') {
+      } else if (typeof window !== "undefined") {
         try {
-          const detected = sessionStorage.getItem('detected_city');
+          const detected = sessionStorage.getItem("detected_city");
           if (detected) {
             const parsed = JSON.parse(detected);
             if (parsed.lon != null) {
@@ -200,9 +217,9 @@ function SearchPageContent() {
       }
 
       const data = await response.json();
-      
+
       let newProducts = data.result || [];
-      
+
       if (query) {
         newProducts = filterProductsByQuery(newProducts, query);
       }
@@ -210,20 +227,20 @@ function SearchPageContent() {
       if (page === 1) {
         setProducts(newProducts);
       } else {
-        setProducts(prev => {
+        setProducts((prev) => {
           const combined = [...prev, ...newProducts];
           return query ? filterProductsByQuery(combined, query) : combined;
         });
       }
-      
-      setTotalResults(prev => {
+
+      setTotalResults((prev) => {
         if (page === 1) {
           return newProducts.length;
         } else {
           return prev + newProducts.length;
         }
       });
-      
+
       setHasMore((data.result?.length || 0) >= 20);
     } catch (error) {
       console.error("Ошибка поиска товаров:", error);
@@ -243,13 +260,13 @@ function SearchPageContent() {
   const handleFilterChange = (key: string, value: any) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    
+
     const urlParams: any = { q: query };
     if (newFilters.category) urlParams.category = newFilters.category;
     if (newFilters.minPrice) urlParams.min_price = newFilters.minPrice;
     if (newFilters.maxPrice) urlParams.max_price = newFilters.maxPrice;
     if (sortBy !== "relevance") urlParams.sort_by = sortBy;
-    
+
     updateUrl(urlParams);
     setPage(1);
   };
@@ -273,24 +290,20 @@ function SearchPageContent() {
 
   const updateUrl = (params: Record<string, string>) => {
     const newParams = new URLSearchParams();
-    
+
     if (params.q) {
       newParams.set("q", params.q);
     } else if (query) {
       newParams.set("q", query);
     }
-    
-    Object.keys(params).forEach(key => {
+
+    Object.keys(params).forEach((key) => {
       if (key !== "q" && params[key]) {
         newParams.set(key, params[key]);
       }
     });
-    
-    router.push(`/search?${newParams.toString()}`);
-  };
 
-  const loadMore = () => {
-    setPage(prev => prev + 1);
+    router.push(`/search?${newParams.toString()}`);
   };
 
   const hasActiveFilters = category || minPrice || maxPrice;
@@ -302,9 +315,7 @@ function SearchPageContent() {
           {query ? `Результаты поиска: "${query}"` : "Поиск товаров"}
         </h1>
         {totalResults > 0 && (
-          <p className="text-gray-600 mt-2">
-            Найдено {totalResults} товаров
-          </p>
+          <p className="text-gray-600 mt-2">Найдено {totalResults} товаров</p>
         )}
       </div>
 
@@ -340,33 +351,45 @@ function SearchPageContent() {
                     <ChevronDown className="w-4 h-4 text-gray-500" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent 
+                <DropdownMenuContent
                   className="w-52 max-h-60 overflow-y-auto bg-white border border-gray-200 shadow-lg rounded-md"
                   align="start"
                 >
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => handleFilterChange("category", "")}
                     className="flex items-center px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
                   >
-                    <div className={`flex items-center w-full ${!filters.category ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
+                    <div
+                      className={`flex items-center w-full ${
+                        !filters.category
+                          ? "text-blue-600 font-medium"
+                          : "text-gray-700"
+                      }`}
+                    >
                       <span>Все категории</span>
                     </div>
                   </DropdownMenuItem>
-                  
+
                   <div className="border-t border-gray-100 my-1" />
-                  
+
                   {categories.map((cat) => (
                     <DropdownMenuItem
                       key={cat}
                       onClick={() => handleFilterChange("category", cat)}
                       className="flex items-center px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <div className={`flex items-center w-full ${filters.category === cat ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
+                      <div
+                        className={`flex items-center w-full ${
+                          filters.category === cat
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
                         <span className="truncate">{cat}</span>
                       </div>
                     </DropdownMenuItem>
                   ))}
-                  
+
                   {categories.length === 0 && (
                     <div className="px-3 py-3 text-center">
                       <p className="text-gray-400 text-sm">Нет категорий</p>
@@ -383,14 +406,18 @@ function SearchPageContent() {
                   type="number"
                   placeholder="От"
                   value={filters.minPrice}
-                  onChange={(e) => handleFilterChange("minPrice", e.target.value)}
+                  onChange={(e) =>
+                    handleFilterChange("minPrice", e.target.value)
+                  }
                   className="w-full"
                 />
                 <Input
                   type="number"
                   placeholder="До"
                   value={filters.maxPrice}
-                  onChange={(e) => handleFilterChange("maxPrice", e.target.value)}
+                  onChange={(e) =>
+                    handleFilterChange("maxPrice", e.target.value)
+                  }
                   className="w-full"
                 />
               </div>
@@ -401,7 +428,10 @@ function SearchPageContent() {
         <div className="flex-1">
           <div className="bg-white p-4 rounded-lg border mb-6">
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <form onSubmit={handleSearchSubmit} className="flex-1 w-full sm:max-w-md">
+              <form
+                onSubmit={handleSearchSubmit}
+                className="flex-1 w-full sm:max-w-md"
+              >
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <Input
@@ -429,7 +459,11 @@ function SearchPageContent() {
                   </SelectTrigger>
                   <SelectContent>
                     {sortOptions.map((option) => (
-                      <SelectItem className="cursor-pointer" key={option.value} value={option.value}>
+                      <SelectItem
+                        className="cursor-pointer"
+                        key={option.value}
+                        value={option.value}
+                      >
                         {option.label}
                       </SelectItem>
                     ))}
@@ -470,6 +504,7 @@ function SearchPageContent() {
           </div>
 
           {loading && page === 1 ? (
+            // Скелетоны при первой загрузке
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-5">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
                 <ProductCardSkeleton key={i} />
@@ -477,23 +512,25 @@ function SearchPageContent() {
             </div>
           ) : products.length > 0 ? (
             <>
+              {/* Список товаров без анимации */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-5">
                 {products.map((product) => (
                   <ProductCard key={product.id} {...product} />
                 ))}
               </div>
 
-              {hasMore && (
-                <div className="text-center mt-8">
-                  <Button
-                    onClick={loadMore}
-                    disabled={loading}
-                    variant="outline"
-                    className="px-8"
-                  >
-                    {loading ? "Загрузка..." : "Показать еще"}
-                  </Button>
+              {/* Скелетоны подгрузки следующей страницы */}
+              {loading && page > 1 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <ProductCardSkeleton key={`loader-${i}`} />
+                  ))}
                 </div>
+              )}
+
+              {/* Триггер для бесконечной прокрутки */}
+              {hasMore && !loading && (
+                <div ref={loadMoreRef} className="h-10 w-full" />
               )}
             </>
           ) : (
@@ -510,7 +547,11 @@ function SearchPageContent() {
                   : "Найдите товары по названию, категории или производителю"}
               </p>
               {query && (
-                <Button onClick={handleClearFilters} variant="outline" className="cursor-pointer">
+                <Button
+                  onClick={handleClearFilters}
+                  variant="outline"
+                  className="cursor-pointer"
+                >
                   Сбросить фильтры
                 </Button>
               )}
@@ -524,14 +565,16 @@ function SearchPageContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={
-      <div className="container py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+    <Suspense
+      fallback={
+        <div className="container py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <SearchPageContent />
     </Suspense>
   );

@@ -9,25 +9,21 @@ const Poster = () => {
   const slides = [
     {
       id: 1,
-      image: "https://github.com/Trolozor/images/blob/main/p3.png?raw=true",
       buttonText: "Смотреть предложения",
       buttonLink: "/products",
     },
     {
       id: 2,
-      image: "https://github.com/Trolozor/images/blob/main/image.png?raw=true",
       buttonText: "Заказать еду",
       buttonLink: "/products",
     },
     {
       id: 3,
-      image: "https://github.com/Trolozor/images/blob/main/p1.png?raw=true",
       buttonText: "Заказать цветы",
       buttonLink: "/products",
     },
     {
       id: 4,
-      image: "https://github.com/Trolozor/images/blob/main/p2.png?raw=true",
       buttonText: "Заказать цветы",
       buttonLink: "/products",
     },
@@ -58,20 +54,18 @@ const Poster = () => {
         }}
         modules={[Pagination]}
       >
-        {slides.map((slide) => {
-          return (
-            <SwiperSlide className="rounded-lg overflow-hidden" key={slide.id}>
-              <motion.img
-                src={slide.image}
-                className="w-full h-full object-cover object-left"
-                loading="eager"
-                fetchPriority="high"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.3 }}
-              />
-            </SwiperSlide>
-          );
-        })}
+        {slides.map((slide) => (
+          <SwiperSlide className="rounded-lg overflow-hidden" key={slide.id}>
+            <motion.img
+              src={`/poster/${slide.id}.png`}
+              className="w-full h-full object-cover object-left"
+              loading="eager"
+              fetchPriority="high"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.3 }}
+            />
+          </SwiperSlide>
+        ))}
       </Swiper>
     </section>
   );

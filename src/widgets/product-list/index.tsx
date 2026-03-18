@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
-import { motion } from "framer-motion";
 
 import { ProductCard } from "@/entities/product/ui";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
@@ -15,24 +14,9 @@ interface ProductsListProps {
   onTotalCountChange?: (count: number) => void;
 }
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const ProductsList: React.FC<ProductsListProps> = ({ 
-  params, 
-  onTotalCountChange 
+const ProductsList: React.FC<ProductsListProps> = ({
+  params,
+  onTotalCountChange,
 }) => {
   const {
     data,
@@ -44,10 +28,10 @@ const ProductsList: React.FC<ProductsListProps> = ({
   } = useInfiniteQuery({
     queryKey: ["products", params],
     queryFn: ({ pageParam = 1 }) =>
-      fetchProducts({ 
-        ...params, 
-        page: pageParam as number, 
-        size: params.size || 20 
+      fetchProducts({
+        ...params,
+        page: pageParam as number,
+        size: params.size || 20,
       }),
     getNextPageParam: (lastPage) => {
       if (lastPage.page * lastPage.size < lastPage.count) {
@@ -57,7 +41,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
     },
     initialPageParam: 1,
   });
-  
+
   const { ref, inView } = useInView({
     threshold: 0.5,
   });
@@ -77,18 +61,13 @@ const ProductsList: React.FC<ProductsListProps> = ({
   if (isLoading) {
     return (
       <div className="flex-1">
-        <motion.div 
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-        >
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div key={i} variants={itemVariants}>
+            <div key={i}>
               <ProductCardSkeleton />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -97,7 +76,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
     return (
       <div className="flex-1 text-center py-8">
         <div className="text-red-600 mb-2">Ошибка загрузки продуктов</div>
-        <button 
+        <button
           onClick={() => window?.location.reload()}
           className="text-blue-600 hover:underline"
         >
@@ -122,41 +101,29 @@ const ProductsList: React.FC<ProductsListProps> = ({
 
   return (
     <div className="flex-1">
-      <motion.div 
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={containerVariants}
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-      >
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {data?.pages.map((page) => (
           <React.Fragment key={page.page}>
             {page?.result?.map((product: Product) => (
-              <motion.div key={product.id} variants={itemVariants}>
+              <div key={product.id}>
                 <ProductCard {...product} />
-              </motion.div>
+              </div>
             ))}
           </React.Fragment>
         ))}
-      </motion.div>
+      </div>
+
       {isFetchingNextPage && (
-        <motion.div 
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-3"
-        >
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-3">
           {Array.from({ length: 5 }).map((_, index) => (
-            <motion.div key={`loader-${index}`} variants={itemVariants}>
+            <div key={`loader-${index}`}>
               <ProductCardSkeleton />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       )}
 
-      {hasNextPage && (
-        <div ref={ref} className="h-10 w-full bg-transparent" />
-      )}
+      {hasNextPage && <div ref={ref} className="h-10 w-full bg-transparent" />}
     </div>
   );
 };
