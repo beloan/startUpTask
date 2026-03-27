@@ -1,18 +1,14 @@
 "use client";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, Filter, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 import { ProductCard } from "@/entities/product";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
+
+import { Filter } from "@/widgets/filter";
 
 import { Badge } from "@/shared/ui/kit/badge";
 import { Button } from "@/shared/ui/kit/button";
@@ -43,14 +39,6 @@ function SearchPageContent() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalResults, setTotalResults] = useState(0);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [filters, setFilters] = useState({
-    category: category,
-    minPrice: minPrice,
-    maxPrice: maxPrice,
-    inStock: false,
-    ratingFrom: 0,
-  });
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -60,14 +48,35 @@ function SearchPageContent() {
   });
 
   useEffect(() => {
-    setFilters({
-      category: category,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
-      inStock: false,
-      ratingFrom: 0,
-    });
-  }, [category, minPrice, maxPrice]);
+    if (query) {
+      setPage(1);
+      setProducts([]);
+      searchProducts();
+    }
+  }, [
+    query,
+    category,
+    minPrice,
+    maxPrice,
+    sortBy,
+    address,
+    city,
+    sellerId,
+    lat,
+    lon,
+  ]);
+
+  useEffect(() => {
+    if (query && page > 1) {
+      searchProducts();
+    }
+  }, [page]);
+
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      setPage((prev) => prev + 1);
+    }
+  }, [inView, hasMore, loading]);
 
   const sortOptions = [
     { value: "price_desc", label: "Дороже" },
@@ -75,55 +84,6 @@ function SearchPageContent() {
     { value: "total_sold", label: "Популярное" },
     { value: "newest", label: "Новое" },
   ];
-
-  // Сброс и загрузка при изменении параметров поиска
-  useEffect(() => {
-    if (query) {
-      setPage(1);
-      setProducts([]);
-      searchProducts();
-      loadCategories();
-    }
-  }, [query, category, minPrice, maxPrice, sortBy]);
-
-  // Загрузка следующей страницы при изменении номера страницы
-  useEffect(() => {
-    if (query && page > 1) {
-      searchProducts();
-    }
-  }, [page]);
-
-  // Автоматическая подгрузка при достижении триггера
-  useEffect(() => {
-    if (inView && hasMore && !loading) {
-      setPage((prev) => prev + 1);
-    }
-  }, [inView, hasMore, loading]);
-
-  const loadCategories = async () => {
-    try {
-      const response = await fetch(
-        "https://app.tablecrm.com/api/v1/mp/categories/",
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data.result?.map((cat: any) => cat.name) || []);
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки категорий:", error);
-    }
-  };
-
-  const filterProductsByQuery = (products: any[], query: string) => {
-    if (!query.trim()) return products;
-    const lowerQuery = query.toLowerCase();
-    return products.filter(
-      (product) =>
-        product.name.toLowerCase().includes(lowerQuery) ||
-        product.category_name?.toLowerCase().includes(lowerQuery) ||
-        product.manufacturer_name?.toLowerCase().includes(lowerQuery),
-    );
-  };
 
   const clearSearch = () => {
     setSearchInput("");
@@ -137,6 +97,10 @@ function SearchPageContent() {
         page: page.toString(),
         size: "20",
       });
+
+      if (query) {
+        params.append("name", query);
+      }
 
       if (category) {
         params.append("category", category);
@@ -219,17 +183,10 @@ function SearchPageContent() {
 
       let newProducts = data.result || [];
 
-      if (query) {
-        newProducts = filterProductsByQuery(newProducts, query);
-      }
-
       if (page === 1) {
         setProducts(newProducts);
       } else {
-        setProducts((prev) => {
-          const combined = [...prev, ...newProducts];
-          return query ? filterProductsByQuery(combined, query) : combined;
-        });
+        setProducts((prev) => [...prev, ...newProducts]);
       }
 
       setTotalResults((prev) => {
@@ -256,32 +213,6 @@ function SearchPageContent() {
     }
   };
 
-  const handleFilterChange = (key: string, value: any) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-
-    const urlParams: any = { q: query };
-    if (newFilters.category) urlParams.category = newFilters.category;
-    if (newFilters.minPrice) urlParams.min_price = newFilters.minPrice;
-    if (newFilters.maxPrice) urlParams.max_price = newFilters.maxPrice;
-    if (sortBy !== "relevance") urlParams.sort_by = sortBy;
-
-    updateUrl(urlParams);
-    setPage(1);
-  };
-
-  const handleClearFilters = () => {
-    setFilters({
-      category: "",
-      minPrice: "",
-      maxPrice: "",
-      inStock: false,
-      ratingFrom: 0,
-    });
-    updateUrl({ q: query });
-    setPage(1);
-  };
-
   const handleSortChange = (value: string) => {
     updateUrl({ sort_by: value, q: query });
     setPage(1);
@@ -305,7 +236,46 @@ function SearchPageContent() {
     router.push(`/search?${newParams.toString()}`);
   };
 
+  const handleClearFilters = () => {
+    router.push(`/search?q=${encodeURIComponent(query)}`);
+    setPage(1);
+  };
+
+  const {
+    minProductPrice,
+    maxProductPrice,
+    uniqueCategories,
+    uniqueManufacturers,
+    uniqueSellers,
+  } = useMemo(() => {
+    const prices = products
+      .filter((p) => p.price != null && p.price > 0)
+      .map((p) => p.price);
+    const min = prices.length ? Math.min(...prices) : 0;
+    const max = prices.length ? Math.max(...prices) : 10000;
+
+    const cats = products
+      .map((p) => p.category_name || p.category)
+      .filter(Boolean);
+    const mans = products
+      .map((p) => p.manufacturer_name || p.manufacturer)
+      .filter(Boolean);
+    const sellers = products.map((p) => p.seller_name).filter(Boolean);
+
+    return {
+      minProductPrice: min,
+      maxProductPrice: max,
+      uniqueCategories: Array.from(new Set(cats)),
+      uniqueManufacturers: Array.from(new Set(mans)),
+      uniqueSellers: Array.from(new Set(sellers)),
+    };
+  }, [products]);
+
   const hasActiveFilters = category || minPrice || maxPrice;
+
+  const sellerOptions = useMemo(() => {
+    return uniqueSellers.map((name) => ({ value: name, label: name }));
+  }, [uniqueSellers]);
 
   return (
     <div className="container py-8">
@@ -319,109 +289,16 @@ function SearchPageContent() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="lg:w-64 space-y-4">
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-medium text-lg">Фильтры</h2>
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="text-blue-500 hover:text-blue-600"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Сбросить
-                </Button>
-              )}
-            </div>
-
-            <div className="mb-4">
-              <h3 className="font-medium mb-2 text-gray-700">Категория</h3>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-                  >
-                    <span className="text-gray-800 truncate">
-                      {filters.category || "Все категории"}
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-52 max-h-60 overflow-y-auto bg-white border border-gray-200 shadow-lg rounded-md"
-                  align="start"
-                >
-                  <DropdownMenuItem
-                    onClick={() => handleFilterChange("category", "")}
-                    className="flex items-center px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <div
-                      className={`flex items-center w-full ${
-                        !filters.category
-                          ? "text-blue-600 font-medium"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      <span>Все категории</span>
-                    </div>
-                  </DropdownMenuItem>
-
-                  <div className="border-t border-gray-100 my-1" />
-
-                  {categories.map((cat) => (
-                    <DropdownMenuItem
-                      key={cat}
-                      onClick={() => handleFilterChange("category", cat)}
-                      className="flex items-center px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
-                    >
-                      <div
-                        className={`flex items-center w-full ${
-                          filters.category === cat
-                            ? "text-blue-600 font-medium"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        <span className="truncate">{cat}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-
-                  {categories.length === 0 && (
-                    <div className="px-3 py-3 text-center">
-                      <p className="text-gray-400 text-sm">Нет категорий</p>
-                    </div>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="mb-4">
-              <h3 className="font-medium mb-2">Цена</h3>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="От"
-                  value={filters.minPrice}
-                  onChange={(e) =>
-                    handleFilterChange("minPrice", e.target.value)
-                  }
-                  className="w-full"
-                />
-                <Input
-                  type="number"
-                  placeholder="До"
-                  value={filters.maxPrice}
-                  onChange={(e) =>
-                    handleFilterChange("maxPrice", e.target.value)
-                  }
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
+        {/* Левая колонка с фильтром */}
+        <div className="lg:w-80 space-y-4">
+          <Filter
+            products={products}
+            initialMinPrice={minProductPrice}
+            initialMaxPrice={maxProductPrice}
+            categories={uniqueCategories}
+            manufacturers={uniqueManufacturers}
+            sellerOptions={sellerOptions}
+          />
         </div>
 
         <div className="flex-1">
@@ -477,7 +354,14 @@ function SearchPageContent() {
                   <Badge variant="secondary" className="gap-1">
                     Категория: {category}
                     <button
-                      onClick={() => handleFilterChange("category", "")}
+                      onClick={() => {
+                        const params = new URLSearchParams(
+                          searchParams.toString(),
+                        );
+                        params.delete("category");
+                        router.push(`/search?${params.toString()}`);
+                        setPage(1);
+                      }}
                       className="ml-1 hover:text-red-500"
                     >
                       <X className="w-3 h-3" />
@@ -489,8 +373,13 @@ function SearchPageContent() {
                     Цена: {minPrice || "0"} - {maxPrice || "∞"}
                     <button
                       onClick={() => {
-                        handleFilterChange("minPrice", "");
-                        handleFilterChange("maxPrice", "");
+                        const params = new URLSearchParams(
+                          searchParams.toString(),
+                        );
+                        params.delete("min_price");
+                        params.delete("max_price");
+                        router.push(`/search?${params.toString()}`);
+                        setPage(1);
                       }}
                       className="ml-1 hover:text-red-500"
                     >
@@ -503,7 +392,6 @@ function SearchPageContent() {
           </div>
 
           {loading && page === 1 ? (
-            // Скелетоны при первой загрузке
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-5">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
                 <ProductCardSkeleton key={i} />
@@ -511,14 +399,12 @@ function SearchPageContent() {
             </div>
           ) : products.length > 0 ? (
             <>
-              {/* Список товаров без анимации */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-5">
                 {products.map((product) => (
                   <ProductCard key={product.id} {...product} />
                 ))}
               </div>
 
-              {/* Скелетоны подгрузки следующей страницы */}
               {loading && page > 1 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-3">
                   {Array.from({ length: 10 }).map((_, i) => (
@@ -527,10 +413,7 @@ function SearchPageContent() {
                 </div>
               )}
 
-              {/* Триггер для бесконечной прокрутки */}
-              {hasMore && !loading && (
-                <div ref={ref} className="h-10 w-full" />
-              )}
+              {hasMore && !loading && <div ref={ref} className="h-10 w-full" />}
             </>
           ) : (
             <div className="text-center py-16">

@@ -2,8 +2,11 @@
 "use client";
 
 import { Star, X } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
+
+import { useCategoryTree } from "@/shared/hooks/useCategory";
 import { Button } from "@/shared/ui/kit/button";
 import { Checkbox } from "@/shared/ui/kit/checkbox";
 import {
@@ -11,11 +14,15 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/shared/ui/kit/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/kit/select";
 import { Separator } from "@/shared/ui/kit/separator";
 import { Slider } from "@/shared/ui/kit/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
-import { useDebouncedCallback } from "use-debounce";
-import { useCategoryTree } from "@/shared/hooks/useCategory";
 
 interface FilterProps {
   products?: any[];
@@ -23,6 +30,7 @@ interface FilterProps {
   initialMaxPrice?: number;
   categories?: string[];
   manufacturers?: string[];
+  sellerOptions?: { value: number; label: string }[];
 }
 
 export const Filter = ({
@@ -31,6 +39,7 @@ export const Filter = ({
   initialMaxPrice = 100000,
   categories: externalCategories,
   manufacturers: externalManufacturers,
+  sellerOptions = [],
 }: FilterProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,22 +55,46 @@ export const Filter = ({
     const params = new URLSearchParams(searchParams.toString());
 
     return {
-      min_price: params.has("min_price") ? Number(params.get("min_price")) : undefined,
-      max_price: params.has("max_price") ? Number(params.get("max_price")) : undefined,
-      rating_from: params.has("rating_from") ? Number(params.get("rating_from")) : undefined,
-      rating_to: params.has("rating_to") ? Number(params.get("rating_to")) : undefined,
+      min_price: params.has("min_price")
+        ? Number(params.get("min_price"))
+        : undefined,
+      max_price: params.has("max_price")
+        ? Number(params.get("max_price"))
+        : undefined,
+      rating_from: params.has("rating_from")
+        ? Number(params.get("rating_from"))
+        : undefined,
+      rating_to: params.has("rating_to")
+        ? Number(params.get("rating_to"))
+        : undefined,
       category: params.get("category") || undefined,
       manufacturer: params.get("manufacturer") || undefined,
       in_stock: params.get("in_stock") === "true",
-      global_category_id: params.has("global_category_id") ? Number(params.get("global_category_id")) : undefined,
+      has_photos: params.get("has_photos") === "true",
+      seller_id: params.has("seller_id")
+        ? Number(params.get("seller_id"))
+        : undefined,
+      global_category_id: params.has("global_category_id")
+        ? Number(params.get("global_category_id"))
+        : undefined,
     };
   }, [searchParams]);
 
   const { minProductPrice, maxProductPrice } = useMemo(() => {
-    if (!products.length) return { minProductPrice: initialMinPrice, maxProductPrice: initialMaxPrice };
+    if (!products.length)
+      return {
+        minProductPrice: initialMinPrice,
+        maxProductPrice: initialMaxPrice,
+      };
 
-    const prices = products.filter(p => p.price != null && p.price > 0).map(p => p.price);
-    if (!prices.length) return { minProductPrice: initialMinPrice, maxProductPrice: initialMaxPrice };
+    const prices = products
+      .filter((p) => p.price != null && p.price > 0)
+      .map((p) => p.price);
+    if (!prices.length)
+      return {
+        minProductPrice: initialMinPrice,
+        maxProductPrice: initialMaxPrice,
+      };
 
     return {
       minProductPrice: Math.min(...prices),
@@ -69,16 +102,20 @@ export const Filter = ({
     };
   }, [products, initialMinPrice, initialMaxPrice]);
 
-  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([minProductPrice, maxProductPrice]);
-  const [localRatingRange, setLocalRatingRange] = useState<[number, number]>([0, 5]);
+  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
+    minProductPrice,
+    maxProductPrice,
+  ]);
+  const [localRatingRange, setLocalRatingRange] = useState<[number, number]>([
+    0, 5,
+  ]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalPriceRange([
       currentFilters.min_price ?? minProductPrice,
       currentFilters.max_price ?? maxProductPrice,
     ]);
-    
+
     setLocalRatingRange([
       currentFilters.rating_from ?? 0,
       currentFilters.rating_to ?? 5,
@@ -87,57 +124,78 @@ export const Filter = ({
 
   const selectedCategories = useMemo(
     () => (currentFilters.category ? currentFilters.category.split(",") : []),
-    [currentFilters.category]
+    [currentFilters.category],
   );
 
   const selectedManufacturers = useMemo(
-    () => (currentFilters.manufacturer ? currentFilters.manufacturer.split(",") : []),
-    [currentFilters.manufacturer]
+    () =>
+      currentFilters.manufacturer ? currentFilters.manufacturer.split(",") : [],
+    [currentFilters.manufacturer],
   );
 
   const uniqueCategories = useMemo(() => {
-    if (externalCategories && externalCategories.length > 0) return externalCategories;
-    const cats = products.map(p => p.category_name || p.category).filter(Boolean);
+    if (externalCategories && externalCategories.length > 0)
+      return externalCategories;
+    const cats = products
+      .map((p) => p.category_name || p.category)
+      .filter(Boolean);
     return Array.from(new Set(cats));
   }, [products, externalCategories]);
 
   const uniqueManufacturers = useMemo(() => {
-    if (externalManufacturers && externalManufacturers.length > 0) return externalManufacturers;
-    const mans = products.map(p => p.manufacturer_name || p.manufacturer).filter(Boolean);
+    if (externalManufacturers && externalManufacturers.length > 0)
+      return externalManufacturers;
+    const mans = products
+      .map((p) => p.manufacturer_name || p.manufacturer)
+      .filter(Boolean);
     return Array.from(new Set(mans));
   }, [products, externalManufacturers]);
 
-  const updateUrl = useDebouncedCallback((newParams: Record<string, string | number | boolean | undefined>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    params.delete('page');
+  const updateUrl = useDebouncedCallback(
+    (newParams: Record<string, string | number | boolean | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
 
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value === undefined || value === "" || value === false || (Array.isArray(value) && value.length === 0)) {
-        params.delete(key);
-      } else if (value === true) {
-        params.set(key, "true");
-      } else {
-        params.set(key, String(value));
-      }
-    });
+      params.delete("page");
 
-    router.push(`/products?${params.toString()}`, { scroll: false });
-  }, 300);
+      Object.entries(newParams).forEach(([key, value]) => {
+        if (
+          value === undefined ||
+          value === "" ||
+          value === false ||
+          (Array.isArray(value) && value.length === 0)
+        ) {
+          params.delete(key);
+        } else if (value === true) {
+          params.set(key, "true");
+        } else {
+          params.set(key, String(value));
+        }
+      });
+
+      router.push(`/products?${params.toString()}`, { scroll: false });
+    },
+    300,
+  );
 
   const handlePriceChange = (value: number[]) => {
     const [min, max] = value;
     setLocalPriceRange([min, max]);
-    updateUrl({ 
-      min_price: min === minProductPrice ? undefined : min, 
-      max_price: max === maxProductPrice ? undefined : max 
+    updateUrl({
+      min_price: min === minProductPrice ? undefined : min,
+      max_price: max === maxProductPrice ? undefined : max,
     });
   };
 
+  const handleHasPhotosChange = (checked: boolean) => {
+    updateUrl({ has_photos: checked ? "true" : undefined });
+  };
+
   const handlePriceInputBlur = () => {
-    updateUrl({ 
-      min_price: localPriceRange[0] === minProductPrice ? undefined : localPriceRange[0], 
-      max_price: localPriceRange[1] === maxProductPrice ? undefined : localPriceRange[1] 
+    updateUrl({
+      min_price:
+        localPriceRange[0] === minProductPrice ? undefined : localPriceRange[0],
+      max_price:
+        localPriceRange[1] === maxProductPrice ? undefined : localPriceRange[1],
     });
   };
 
@@ -150,20 +208,14 @@ export const Filter = ({
     });
   };
 
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    const newCats = checked
-      ? [...selectedCategories, category]
-      : selectedCategories.filter(c => c !== category);
-
-    updateUrl({ category: newCats.length > 0 ? newCats.join(",") : undefined });
+  const handleCategoryChange = (values: string[]) => {
+    updateUrl({ category: values.length > 0 ? values.join(",") : undefined });
   };
 
-  const handleManufacturerChange = (manufacturer: string, checked: boolean) => {
-    const newMans = checked
-      ? [...selectedManufacturers, manufacturer]
-      : selectedManufacturers.filter(m => m !== manufacturer);
-
-    updateUrl({ manufacturer: newMans.length > 0 ? newMans.join(",") : undefined });
+  const handleManufacturerChange = (values: string[]) => {
+    updateUrl({
+      manufacturer: values.length > 0 ? values.join(",") : undefined,
+    });
   };
 
   const handleInStockChange = (checked: boolean) => {
@@ -171,7 +223,15 @@ export const Filter = ({
   };
 
   const handleGlobalCategoryChange = (categoryId: string) => {
-    updateUrl({ global_category_id: categoryId === "all" ? undefined : Number(categoryId) });
+    updateUrl({
+      global_category_id: categoryId === "all" ? undefined : Number(categoryId),
+    });
+  };
+
+  const handleSellerChange = (sellerId: string) => {
+    updateUrl({
+      seller_id: sellerId === "all" ? undefined : Number(sellerId),
+    });
   };
 
   const handleResetFilters = () => {
@@ -184,12 +244,22 @@ export const Filter = ({
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (currentFilters.min_price !== undefined || currentFilters.max_price !== undefined) count++;
-    if (currentFilters.rating_from !== undefined || currentFilters.rating_to !== undefined) count++;
+    if (
+      currentFilters.min_price !== undefined ||
+      currentFilters.max_price !== undefined
+    )
+      count++;
+    if (
+      currentFilters.rating_from !== undefined ||
+      currentFilters.rating_to !== undefined
+    )
+      count++;
     if (currentFilters.category) count++;
     if (currentFilters.manufacturer) count++;
     if (currentFilters.in_stock) count++;
     if (currentFilters.global_category_id !== undefined) count++;
+    if (currentFilters.has_photos) count++;
+    if (currentFilters.seller_id !== undefined) count++;
     return count;
   }, [currentFilters]);
 
@@ -246,11 +316,14 @@ export const Filter = ({
           <div>
             <div className="flex justify-between items-center">
               <p className="font-medium">Цена</p>
-              {currentFilters.min_price !== undefined || currentFilters.max_price !== undefined ? (
+              {currentFilters.min_price !== undefined ||
+              currentFilters.max_price !== undefined ? (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => updateUrl({ min_price: undefined, max_price: undefined })}
+                  onClick={() =>
+                    updateUrl({ min_price: undefined, max_price: undefined })
+                  }
                   className="h-6 px-2 text-xs"
                 >
                   <X className="h-3 w-3 mr-1" />
@@ -268,7 +341,10 @@ export const Filter = ({
                   onChange={(e) => {
                     const val = Number(e.target.value);
                     if (!isNaN(val)) {
-                      setLocalPriceRange([Math.max(val, minProductPrice), localPriceRange[1]]);
+                      setLocalPriceRange([
+                        Math.max(val, minProductPrice),
+                        localPriceRange[1],
+                      ]);
                     }
                   }}
                   onBlur={handlePriceInputBlur}
@@ -283,7 +359,10 @@ export const Filter = ({
                   onChange={(e) => {
                     const val = Number(e.target.value);
                     if (!isNaN(val)) {
-                      setLocalPriceRange([localPriceRange[0], Math.min(val, maxProductPrice)]);
+                      setLocalPriceRange([
+                        localPriceRange[0],
+                        Math.min(val, maxProductPrice),
+                      ]);
                     }
                   }}
                   onBlur={handlePriceInputBlur}
@@ -299,70 +378,105 @@ export const Filter = ({
               step={100}
             />
             <div className="text-xs text-gray-500 mt-1">
-              Диапазон: {minProductPrice.toLocaleString('ru-RU')}₽ - {maxProductPrice.toLocaleString('ru-RU')}₽
+              Диапазон: {minProductPrice.toLocaleString("ru-RU")}₽ -{" "}
+              {maxProductPrice.toLocaleString("ru-RU")}₽
             </div>
           </div>
 
           <Separator />
 
-          {isMounted && globalCategoriesData?.result && globalCategoriesData.result.length > 0 && (
-            <>
-              <div>
-                <div className="flex justify-between items-center">
-                  <p className="font-medium">Глобальная категория</p>
-                  {currentFilters.global_category_id !== undefined ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => updateUrl({ global_category_id: undefined })}
-                      className="h-6 px-2 text-xs"
+          {isMounted &&
+            globalCategoriesData?.result &&
+            globalCategoriesData.result.length > 0 && (
+              <>
+                <div>
+                  <div className="flex justify-between items-center">
+                    <p className="font-medium">Глобальная категория</p>
+                    {currentFilters.global_category_id !== undefined ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          updateUrl({ global_category_id: undefined })
+                        }
+                        className="h-6 px-2 text-xs"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Сбросить
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className="pt-2">
+                    <Select
+                      value={
+                        currentFilters.global_category_id?.toString() || "all"
+                      }
+                      onValueChange={handleGlobalCategoryChange}
                     >
-                      <X className="h-3 w-3 mr-1" />
-                      Сбросить
-                    </Button>
-                  ) : null}
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Выберите категорию" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Все категории</SelectItem>
+                        {globalCategoriesData.result
+                          .filter((cat) => !cat.parent_id)
+                          .map((category) => (
+                            <SelectItem
+                              key={category.id}
+                              value={category.id.toString()}
+                            >
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="pt-2">
-                  <Select
-                    value={currentFilters.global_category_id?.toString() || "all"}
-                    onValueChange={handleGlobalCategoryChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Выберите категорию" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Все категории</SelectItem>
-                      {globalCategoriesData.result
-                        .filter(cat => !cat.parent_id)
-                        .map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
+                <Separator />
+              </>
+            )}
 
           {uniqueCategories.length > 0 && (
             <>
               <div>
                 <div className="flex justify-between items-center">
-                  <p className="font-medium">Категории ({uniqueCategories.length})</p>
+                  <p className="font-medium">
+                    Категории ({uniqueCategories.length})
+                  </p>
+                  {selectedCategories.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCategoryChange([])}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Сбросить
+                    </Button>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2 pt-2 max-h-40 overflow-y-auto">
                   {uniqueCategories.map((category) => (
-                    <label key={category} className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
+                    <label
+                      key={category}
+                      className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded"
+                    >
                       <Checkbox
                         checked={selectedCategories.includes(category)}
-                        onCheckedChange={(checked) => handleCategoryChange(category, !!checked)}
+                        onCheckedChange={(checked) => {
+                          const newCats = checked
+                            ? [...selectedCategories, category]
+                            : selectedCategories.filter((c) => c !== category);
+                          handleCategoryChange(newCats);
+                        }}
                       />
                       <span className="truncate">{category}</span>
                       <span className="ml-auto text-xs text-gray-500">
-                        {products.filter(p => (p.category_name || p.category) === category).length}
+                        {
+                          products.filter(
+                            (p) => (p.category_name || p.category) === category,
+                          ).length
+                        }
                       </span>
                     </label>
                   ))}
@@ -376,18 +490,47 @@ export const Filter = ({
             <>
               <div>
                 <div className="flex justify-between items-center">
-                  <p className="font-medium">Производители ({uniqueManufacturers.length})</p>
+                  <p className="font-medium">
+                    Производители ({uniqueManufacturers.length})
+                  </p>
+                  {selectedManufacturers.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleManufacturerChange([])}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Сбросить
+                    </Button>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2 pt-2 max-h-40 overflow-y-auto">
                   {uniqueManufacturers.map((manufacturer) => (
-                    <label key={manufacturer} className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
+                    <label
+                      key={manufacturer}
+                      className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded"
+                    >
                       <Checkbox
                         checked={selectedManufacturers.includes(manufacturer)}
-                        onCheckedChange={(checked) => handleManufacturerChange(manufacturer, !!checked)}
+                        onCheckedChange={(checked) => {
+                          const newMans = checked
+                            ? [...selectedManufacturers, manufacturer]
+                            : selectedManufacturers.filter(
+                                (m) => m !== manufacturer,
+                              );
+                          handleManufacturerChange(newMans);
+                        }}
                       />
                       <span className="truncate">{manufacturer}</span>
                       <span className="ml-auto text-xs text-gray-500">
-                        {products.filter(p => (p.manufacturer_name || p.manufacturer) === manufacturer).length}
+                        {
+                          products.filter(
+                            (p) =>
+                              (p.manufacturer_name || p.manufacturer) ===
+                              manufacturer,
+                          ).length
+                        }
                       </span>
                     </label>
                   ))}
@@ -396,6 +539,70 @@ export const Filter = ({
               <Separator />
             </>
           )}
+
+          {sellerOptions.length > 0 && (
+            <>
+              <div>
+                <div className="flex justify-between items-center">
+                  <p className="font-medium">
+                    Продавцы ({sellerOptions.length})
+                  </p>
+                  {currentFilters.seller_id !== undefined && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSellerChange("all")}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Сбросить
+                    </Button>
+                  )}
+                </div>
+                <div className="pt-2">
+                  <Select
+                    value={currentFilters.seller_id?.toString() || "all"}
+                    onValueChange={handleSellerChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Выберите продавца" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все продавцы</SelectItem>
+                      {sellerOptions.map((seller) => (
+                        <SelectItem key={seller.value} value={seller.value.toString()}>
+                          {seller.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          <div>
+            <div className="flex justify-between items-center">
+              <p className="font-medium">Наличие фото</p>
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <label className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
+                <Checkbox
+                  checked={currentFilters.has_photos === true}
+                  onCheckedChange={handleHasPhotosChange}
+                />
+                Только с фото
+                <span className="ml-auto text-xs text-gray-500">
+                  {
+                    products.filter((p) => p.images && p.images.length > 0)
+                      .length
+                  }{" "}
+                  из {products.length}
+                </span>
+              </label>
+            </div>
+          </div>
 
           <div>
             <div className="flex justify-between items-center">
@@ -409,7 +616,8 @@ export const Filter = ({
                 />
                 Только в наличии
                 <span className="ml-auto text-xs text-gray-500">
-                  {products.filter(p => p.in_stock).length} из {products.length}
+                  {products.filter((p) => p.in_stock).length} из{" "}
+                  {products.length}
                 </span>
               </label>
             </div>

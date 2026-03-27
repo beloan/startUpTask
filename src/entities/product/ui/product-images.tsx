@@ -1,11 +1,11 @@
 "use client";
+import Hls from "hls.js";
 import { ChevronLeft, ChevronRight, Play, X } from "lucide-react";
 import Image from "next/image";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { transformImageUrl } from "@/shared/lib/image-utils";
 import { Button } from "@/shared/ui/kit/button";
-import Hls from "hls.js";
 
 import { Product, ProductVideo } from "../model";
 
@@ -19,8 +19,13 @@ type MediaItemVideo = {
 };
 type MediaItem = MediaItemImage | MediaItemVideo;
 
-function parseVideoUrl(url: string, version: number): Omit<MediaItemVideo, "kind"> {
-  const interesnoMatch = url.match(/interesnoitochka\.ru\/(?:video|feed-mobile)\/(\d+)/);
+function parseVideoUrl(
+  url: string,
+  version: number,
+): Omit<MediaItemVideo, "kind"> {
+  const interesnoMatch = url.match(
+    /interesnoitochka\.ru\/(?:video|feed-mobile)\/(\d+)/,
+  );
   if (interesnoMatch) {
     const id = interesnoMatch[1];
     return {
@@ -55,7 +60,11 @@ function parseVideoUrl(url: string, version: number): Omit<MediaItemVideo, "kind
   return { url, videoType: "direct", embedUrl: url };
 }
 
-function buildMediaList(images: string[], videos: ProductVideo[] | undefined, version: number): MediaItem[] {
+function buildMediaList(
+  images: string[],
+  videos: ProductVideo[] | undefined,
+  version: number,
+): MediaItem[] {
   const videoItems: MediaItemVideo[] = (videos ?? []).map((v) => ({
     kind: "video",
     ...parseVideoUrl(v.url, version),
@@ -72,8 +81,8 @@ function buildMediaList(images: string[], videos: ProductVideo[] | undefined, ve
 function HlsPlayer({
   src,
   poster,
-  muted = false,
-  autoPlay = false,
+  muted = true,
+  autoPlay = true,
   controls = true,
   loop = false,
   className = "",
@@ -92,8 +101,13 @@ function HlsPlayer({
     const video = videoRef.current;
     if (!video) return;
 
+    video.muted = muted;
+
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src;
+      if (autoPlay) {
+        video.play().catch((err) => console.warn("Autoplay blocked:", err));
+      }
       return;
     }
 
@@ -112,9 +126,18 @@ function HlsPlayer({
     });
     hls.loadSource(`${src}?_=${Date.now()}`);
     hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      if (autoPlay) {
+        video
+          .play()
+          .catch((err) =>
+            console.warn("Autoplay blocked after manifest:", err),
+          );
+      }
+    });
 
     return () => hls.destroy();
-  }, [src]);
+  }, [src, muted, autoPlay]);
 
   return (
     <video
@@ -143,14 +166,28 @@ function MediaThumb({
     <button
       onClick={onClick}
       className={`relative h-16 md:w-20 md:h-20 rounded-md bg-gray-100 overflow-hidden cursor-pointer focus:outline-none transition-all flex-shrink-0 ${
-        active ? "ring-2 ring-blue-500" : "ring-1 ring-gray-200 hover:ring-blue-300"
+        active
+          ? "ring-2 ring-blue-500"
+          : "ring-1 ring-gray-200 hover:ring-blue-300"
       }`}
     >
       {item.kind === "image" ? (
-        <Image src={item.url} alt="thumbnail" fill sizes="80px" className="object-cover" />
+        <Image
+          src={item.url}
+          alt="thumbnail"
+          fill
+          sizes="80px"
+          className="object-cover"
+        />
       ) : item.posterUrl ? (
         <>
-          <Image src={item.posterUrl} alt="video thumbnail" fill sizes="80px" className="object-cover" />
+          <Image
+            src={item.posterUrl}
+            alt="video thumbnail"
+            fill
+            sizes="80px"
+            className="object-cover"
+          />
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
             <div className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center shadow">
               <Play size={14} className="text-gray-800 fill-gray-800 ml-0.5" />
@@ -173,6 +210,23 @@ function VideoPreview({
   item: MediaItemVideo;
   onOpenModal: () => void;
 }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 },
+    );
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   if (item.videoType === "youtube" || item.videoType === "vimeo") {
     return (
       <button
@@ -180,7 +234,13 @@ function VideoPreview({
         className="relative w-full h-full min-h-[300px] group focus:outline-none"
       >
         {item.posterUrl ? (
-          <Image src={item.posterUrl} alt="video preview" fill className="object-cover" sizes="600px" />
+          <Image
+            src={item.posterUrl}
+            alt="video preview"
+            fill
+            className="object-cover"
+            sizes="600px"
+          />
         ) : (
           <div className="w-full h-full bg-gray-900" />
         )}
@@ -195,13 +255,17 @@ function VideoPreview({
   }
 
   return (
-    <div className="relative w-full h-full min-h-[300px] group cursor-pointer" onClick={onOpenModal}>
+    <div
+      ref={containerRef}
+      className="relative w-full h-full min-h-[300px] group cursor-pointer"
+      onClick={onOpenModal}
+    >
       {item.videoType === "hls" ? (
         <HlsPlayer
           src={item.embedUrl}
           poster={item.posterUrl}
           muted
-          autoPlay
+          autoPlay={isVisible}
           controls={false}
           loop
           className="w-full h-full object-cover aspect-video"
@@ -211,7 +275,7 @@ function VideoPreview({
           src={item.embedUrl}
           poster={item.posterUrl}
           muted
-          autoPlay
+          autoPlay={isVisible}
           loop
           playsInline
           className="w-full h-full object-cover aspect-video"
@@ -305,7 +369,10 @@ export const ProductImages = ({ images, videos }: Props) => {
     (e?: React.MouseEvent) => {
       if (!hasMultiple) return;
       e?.stopPropagation();
-      changeWithAnimation(currentIndex === mediaList.length - 1 ? 0 : currentIndex + 1, "left");
+      changeWithAnimation(
+        currentIndex === mediaList.length - 1 ? 0 : currentIndex + 1,
+        "left",
+      );
     },
     [currentIndex, mediaList.length, hasMultiple, changeWithAnimation],
   );
@@ -314,7 +381,10 @@ export const ProductImages = ({ images, videos }: Props) => {
     (e?: React.MouseEvent) => {
       if (!hasMultiple) return;
       e?.stopPropagation();
-      changeWithAnimation(currentIndex === 0 ? mediaList.length - 1 : currentIndex - 1, "right");
+      changeWithAnimation(
+        currentIndex === 0 ? mediaList.length - 1 : currentIndex - 1,
+        "right",
+      );
     },
     [currentIndex, mediaList.length, hasMultiple, changeWithAnimation],
   );
@@ -383,7 +453,10 @@ export const ProductImages = ({ images, videos }: Props) => {
           onTouchEnd={current.kind === "image" ? handleTouchEnd : undefined}
         >
           {current.kind === "video" ? (
-            <VideoPreview item={current} onOpenModal={() => openModal(currentIndex)} />
+            <VideoPreview
+              item={current}
+              onOpenModal={() => openModal(currentIndex)}
+            />
           ) : (
             <button
               onClick={() => openModal(currentIndex)}
@@ -441,7 +514,7 @@ export const ProductImages = ({ images, videos }: Props) => {
             ) : (
               <div
                 className="relative flex items-center justify-center cursor-default"
-                style={{ width: "90vw", height: "90vh" }}
+                style={{ width: "55vw", height: "90vh" }}
                 onClick={(e) => e.stopPropagation()}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -485,7 +558,11 @@ export const ProductImages = ({ images, videos }: Props) => {
 
             <Button
               onClick={closeModal}
-              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); closeModal(); }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeModal();
+              }}
               className="absolute top-4 right-4 z-50 size-11 cursor-pointer bg-black/50 border-none text-white hover:scale-110 transition-all"
               variant="outline"
               aria-label="Закрыть"
@@ -514,8 +591,18 @@ export const ProductImages = ({ images, videos }: Props) => {
                   <ChevronRight size={24} />
                 </Button>
 
-                <button onClick={prev} onTouchEnd={(e) => e.stopPropagation()} className="absolute left-0 top-1/4 w-1/3 h-1/2 z-40 bg-transparent cursor-pointer focus:outline-none" disabled={isTransitioning} />
-                <button onClick={next} onTouchEnd={(e) => e.stopPropagation()} className="absolute right-0 top-1/4 w-1/3 h-1/2 z-40 bg-transparent cursor-pointer focus:outline-none" disabled={isTransitioning} />
+                <button
+                  onClick={prev}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="absolute left-0 top-1/4 w-1/3 h-1/2 z-40 bg-transparent cursor-pointer focus:outline-none"
+                  disabled={isTransitioning}
+                />
+                <button
+                  onClick={next}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-1/4 w-1/3 h-1/2 z-40 bg-transparent cursor-pointer focus:outline-none"
+                  disabled={isTransitioning}
+                />
 
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                   {mediaList.map((item, index) => {
@@ -523,7 +610,13 @@ export const ProductImages = ({ images, videos }: Props) => {
                     return (
                       <button
                         key={index}
-                        onClick={(e) => { e.stopPropagation(); changeWithAnimation(index, index > currentIndex ? "left" : "right"); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          changeWithAnimation(
+                            index,
+                            index > currentIndex ? "left" : "right",
+                          );
+                        }}
                         onTouchEnd={(e) => e.stopPropagation()}
                         className={`w-3 h-3 rounded-full transition-all ${index === currentIndex ? "bg-white scale-110" : "bg-gray-500 hover:bg-gray-300"}`}
                         disabled={isTransitioning}
