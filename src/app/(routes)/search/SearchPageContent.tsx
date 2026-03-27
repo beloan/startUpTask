@@ -1,12 +1,14 @@
 "use client";
 
-import {Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { Suspense, useEffect, useState, useMemo } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 import { ProductCard } from "@/entities/product";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
+
+import { Filter } from "@/widgets/filter";
 
 import { Badge } from "@/shared/ui/kit/badge";
 import { Button } from "@/shared/ui/kit/button";
@@ -18,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/kit/select";
-import { Filter } from "@/widgets/filter";
 
 function SearchPageContent() {
   const searchParams = useSearchParams();
@@ -46,23 +47,31 @@ function SearchPageContent() {
     rootMargin: "1000px",
   });
 
-  
   useEffect(() => {
     if (query) {
       setPage(1);
       setProducts([]);
       searchProducts();
     }
-  }, [query, category, minPrice, maxPrice, sortBy, address, city, sellerId, lat, lon]);
+  }, [
+    query,
+    category,
+    minPrice,
+    maxPrice,
+    sortBy,
+    address,
+    city,
+    sellerId,
+    lat,
+    lon,
+  ]);
 
-  
   useEffect(() => {
     if (query && page > 1) {
       searchProducts();
     }
   }, [page]);
 
-  
   useEffect(() => {
     if (inView && hasMore && !loading) {
       setPage((prev) => prev + 1);
@@ -174,11 +183,6 @@ function SearchPageContent() {
 
       let newProducts = data.result || [];
 
-      
-      
-      
-      
-
       if (page === 1) {
         setProducts(newProducts);
       } else {
@@ -233,20 +237,30 @@ function SearchPageContent() {
   };
 
   const handleClearFilters = () => {
-    
     router.push(`/search?q=${encodeURIComponent(query)}`);
     setPage(1);
   };
 
-  
-  const { minProductPrice, maxProductPrice, uniqueCategories, uniqueManufacturers, uniqueSellers } = useMemo(() => {
-    const prices = products.filter(p => p.price != null && p.price > 0).map(p => p.price);
+  const {
+    minProductPrice,
+    maxProductPrice,
+    uniqueCategories,
+    uniqueManufacturers,
+    uniqueSellers,
+  } = useMemo(() => {
+    const prices = products
+      .filter((p) => p.price != null && p.price > 0)
+      .map((p) => p.price);
     const min = prices.length ? Math.min(...prices) : 0;
     const max = prices.length ? Math.max(...prices) : 10000;
 
-    const cats = products.map(p => p.category_name || p.category).filter(Boolean);
-    const mans = products.map(p => p.manufacturer_name || p.manufacturer).filter(Boolean);
-    const sellers = products.map(p => p.seller_name).filter(Boolean);
+    const cats = products
+      .map((p) => p.category_name || p.category)
+      .filter(Boolean);
+    const mans = products
+      .map((p) => p.manufacturer_name || p.manufacturer)
+      .filter(Boolean);
+    const sellers = products.map((p) => p.seller_name).filter(Boolean);
 
     return {
       minProductPrice: min,
@@ -258,6 +272,10 @@ function SearchPageContent() {
   }, [products]);
 
   const hasActiveFilters = category || minPrice || maxPrice;
+
+  const sellerOptions = useMemo(() => {
+    return uniqueSellers.map((name) => ({ value: name, label: name }));
+  }, [uniqueSellers]);
 
   return (
     <div className="container py-8">
@@ -279,7 +297,7 @@ function SearchPageContent() {
             initialMaxPrice={maxProductPrice}
             categories={uniqueCategories}
             manufacturers={uniqueManufacturers}
-            sellers={uniqueSellers}
+            sellerOptions={sellerOptions}
           />
         </div>
 
@@ -337,7 +355,9 @@ function SearchPageContent() {
                     Категория: {category}
                     <button
                       onClick={() => {
-                        const params = new URLSearchParams(searchParams.toString());
+                        const params = new URLSearchParams(
+                          searchParams.toString(),
+                        );
                         params.delete("category");
                         router.push(`/search?${params.toString()}`);
                         setPage(1);
@@ -353,7 +373,9 @@ function SearchPageContent() {
                     Цена: {minPrice || "0"} - {maxPrice || "∞"}
                     <button
                       onClick={() => {
-                        const params = new URLSearchParams(searchParams.toString());
+                        const params = new URLSearchParams(
+                          searchParams.toString(),
+                        );
                         params.delete("min_price");
                         params.delete("max_price");
                         router.push(`/search?${params.toString()}`);
