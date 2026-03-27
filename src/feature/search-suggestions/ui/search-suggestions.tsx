@@ -1,16 +1,13 @@
-// SearchSuggestions.tsx
 "use client";
 
 import { Clock8, Flame, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, useMemo } from "react";
-import { useDebounce } from "@/shared/hooks/useDebounce";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 
+import { transformImageUrl } from "@/shared/lib/image-utils";
 import { Badge } from "@/shared/ui/kit/badge";
 import { Separator } from "@/shared/ui/kit/separator";
 import { Skeleton } from "@/shared/ui/kit/skeleton";
-
-import { transformImageUrl } from "@/shared/lib/image-utils";
 
 interface Product {
   id: number;
@@ -33,18 +30,17 @@ interface SearchSuggestionsProps {
   onSearchSubmit: () => void;
   onClose: () => void;
   onSelect?: () => void;
-  onSuggestionSearch: (query: string) => void; // Новый пропс для поиска по выбранному запросу
+  onSuggestionSearch: (query: string) => void;
 }
 
-export const SearchSuggestions = ({ 
-  searchQuery, 
-  onSearchQueryChange, 
-  onSearchSubmit, 
+export const SearchSuggestions = ({
+  searchQuery,
+  onSearchQueryChange,
+  onSearchSubmit,
   onClose,
   onSelect,
-  onSuggestionSearch // Новый пропс
+  onSuggestionSearch,
 }: SearchSuggestionsProps) => {
-  const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [searchResults, setSearchResults] = useState<SearchResult>({
     products: [],
     loading: false,
@@ -56,172 +52,135 @@ export const SearchSuggestions = ({
   const [loadingPopular, setLoadingPopular] = useState<boolean>(true);
   const [isClient, setIsClient] = useState(false);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const allPopularQueries = useMemo(() => [
-    "iPhone 14", "iPhone 15", "Apple MacBook Pro", "MacBook Air", 
-    "AirPods Pro", "AirPods Max", "Samsung Galaxy S23", "Samsung Galaxy Z Fold",
-    "Ноутбуки", "Игровые ноутбуки", "Смартфоны", "Планшеты", "Наушники",
-    "Телевизоры", "Холодильники", "Стиральные машины", "Пылесосы",
-    "Микроволновки", "Кофемашины", "Электросамокаты", "Смарт-часы",
-    "Фитнес-браслеты", "Игровые приставки", "PlayStation 5", "Xbox Series X",
-    "Видеокарты", "Процессоры", "Мониторы", "Клавиатуры", "Мышки",
-    "Коврики для мыши", "Веб-камеры", "Колонки", "Зарядные устройства",
-    "Power Bank", "Чехлы для телефона", "Защитные стекла", "Кабели USB-C"
-  ], []);
+  const allPopularQueries = useMemo(
+    () => [
+      "iPhone 14", "iPhone 15", "Apple MacBook Pro", "MacBook Air",
+      "AirPods Pro", "AirPods Max", "Samsung Galaxy S23", "Samsung Galaxy Z Fold",
+      "Ноутбуки", "Игровые ноутбуки", "Смартфоны", "Планшеты", "Наушники",
+      "Телевизоры", "Холодильники", "Стиральные машины", "Пылесосы",
+      "Микроволновки", "Кофемашины", "Электросамокаты", "Смарт-часы",
+      "Фитнес-браслеты", "Игровые приставки", "PlayStation 5", "Xbox Series X",
+      "Видеокарты", "Процессоры", "Мониторы", "Клавиатуры", "Мышки",
+      "Коврики для мыши", "Веб-камеры", "Колонки", "Зарядные устройства",
+      "Power Bank", "Чехлы для телефона", "Защитные стекла", "Кабели USB-C",
+    ],
+    [],
+  );
 
   const randomPopularQueries = useMemo(() => {
     const shuffled = [...allPopularQueries].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 6);
   }, [allPopularQueries]);
 
+  // Загрузка популярных товаров
   useEffect(() => {
-    if (isClient) {
-      loadSearchHistory();
-      loadPopularProducts();
-      loadRecentlyViewed();
-    }
+    if (!isClient) return;
+    const load = async () => {
+      setLoadingPopular(true);
+      try {
+        const params = new URLSearchParams({
+          size: "6",
+          sort_by: "total_sold",
+          sort_order: "desc",
+        });
+        try {
+          const detected = sessionStorage.getItem("detected_city");
+          if (detected) {
+            const parsed = JSON.parse(detected);
+            if (parsed.lat != null) params.append("lat", String(parsed.lat));
+            if (parsed.lon != null) params.append("lon", String(parsed.lon));
+          }
+        } catch (e) {}
+        const response = await fetch(`https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setPopularProducts(data.result || []);
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки популярных товаров:", error);
+      } finally {
+        setLoadingPopular(false);
+      }
+    };
+    load();
   }, [isClient]);
 
+  // Загрузка истории и недавно просмотренных
   useEffect(() => {
-    if (isClient && debouncedQuery?.trim().length > 0) {
-      performSearch(debouncedQuery);
-    } else {
-      setSearchResults({
-        products: [],
-        loading: false,
-        error: null,
-      });
-    }
-  }, [debouncedQuery, isClient]);
-
-  const loadSearchHistory = () => {
-    if (typeof window === 'undefined') return;
-    
+    if (!isClient) return;
     const savedHistory = localStorage.getItem("searchHistory");
     if (savedHistory) {
       try {
         setSearchHistory(JSON.parse(savedHistory));
-      } catch (error) {
-        console.error("Ошибка загрузки истории поиска:", error);
-      }
+      } catch (e) {}
     }
-  };
-
-  const loadPopularProducts = async () => {
-    if (!isClient) return;
-    
-    setLoadingPopular(true);
-    try {
-      const params = new URLSearchParams({
-        size: '6',
-        sort_by: 'total_sold',
-        sort_order: 'desc',
-      });
-      
-      try {
-        const detected = sessionStorage.getItem('detected_city');
-        if (detected) {
-          const parsed = JSON.parse(detected);
-          if (parsed.lat != null) {
-            params.append('lat', String(parsed.lat));
-          }
-          if (parsed.lon != null) {
-            params.append('lon', String(parsed.lon));
-          }
-        }
-      } catch (e) {
-        // Игнорируем ошибки
-      }
-      
-      const response = await fetch(
-        `https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setPopularProducts(data.result || []);
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки популярных товаров:", error);
-    } finally {
-      setLoadingPopular(false);
-    }
-  };
-
-  const loadRecentlyViewed = () => {
-    if (typeof window === 'undefined') return;
-    
     const savedRecentlyViewed = localStorage.getItem("productViewHistory");
     if (savedRecentlyViewed) {
       try {
         setRecentlyViewed(JSON.parse(savedRecentlyViewed));
-      } catch (error) {
-        console.error("Ошибка загрузки недавно просмотренных:", error);
-      }
+      } catch (e) {}
     }
-  };
+  }, [isClient]);
 
   const saveToRecentlyViewed = (product: Product) => {
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
     const updatedViewed = [
       product,
-      ...recentlyViewed.filter(item => item.id !== product.id)
+      ...recentlyViewed.filter((item) => item.id !== product.id),
     ].slice(0, 6);
-    
     setRecentlyViewed(updatedViewed);
     localStorage.setItem("productViewHistory", JSON.stringify(updatedViewed));
   };
 
-  const performSearch = async (query: string) => {
-    setSearchResults(prev => ({ ...prev, loading: true, error: null }));
-    
+  const performSearch = useCallback(async (query: string) => {
+    // Отменяем предыдущий запрос
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setSearchResults((prev) => ({ ...prev, loading: true, error: null }));
+
     try {
       const params = new URLSearchParams({
-        size: '20',
-        sort_by: 'name',
-        sort_order: 'desc',
+        size: "20",
+        sort_by: "name",
+        sort_order: "desc",
       });
-      
+      if (query.trim()) {
+        params.append("name", query);
+      }
       try {
-        const detected = sessionStorage.getItem('detected_city');
+        const detected = sessionStorage.getItem("detected_city");
         if (detected) {
           const parsed = JSON.parse(detected);
-          if (parsed.lat != null) {
-            params.append('lat', String(parsed.lat));
-          }
-          if (parsed.lon != null) {
-            params.append('lon', String(parsed.lon));
-          }
+          if (parsed.lat != null) params.append("lat", String(parsed.lat));
+          if (parsed.lon != null) params.append("lon", String(parsed.lon));
         }
-      } catch (e) {
-        // Игнорируем ошибки
-      }
-      
+      } catch (e) {}
       const response = await fetch(
-        `https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`
+        `https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`,
+        { signal: controller.signal },
       );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      
-      const filteredProducts = (data.result || []).filter((product: Product) =>
-        product.name.toLowerCase().includes(query.toLowerCase()) ||
-        product.category_name?.toLowerCase().includes(query.toLowerCase()) ||
-        product.manufacturer_name?.toLowerCase().includes(query.toLowerCase())
-      );
-      
+      if (controller.signal.aborted) return;
+      const products = data.result || [];
       setSearchResults({
-        products: filteredProducts.slice(0, 10),
+        products: products.slice(0, 10),
         loading: false,
         error: null,
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === "AbortError") return;
       console.error("Ошибка поиска товаров:", error);
       setSearchResults({
         products: [],
@@ -229,23 +188,30 @@ export const SearchSuggestions = ({
         error: "Ошибка при поиске товаров. Попробуйте позже.",
       });
     }
-  };
+  }, []);
 
-  const handleClearSearch = () => {
-    onSearchQueryChange("");
-  };
+  // Debounce ввода
+  useEffect(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (!searchQuery.trim()) {
+      setSearchResults({ products: [], loading: false, error: null });
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [searchQuery, performSearch]);
 
-  // Измененная функция для истории поиска
   const handleHistoryClick = (query: string) => {
-    // Используем новую функцию для поиска
     onSuggestionSearch(query);
     onClose();
     if (onSelect) onSelect();
   };
 
-  // Измененная функция для популярных запросов
   const handlePopularQueryClick = (query: string) => {
-    // Используем новую функцию для поиска
     onSuggestionSearch(query);
     onClose();
     if (onSelect) onSelect();
@@ -270,9 +236,11 @@ export const SearchSuggestions = ({
                 <div className="text-sm text-gray-500">Поиск...</div>
               )}
             </div>
-            
+
             {searchResults.error ? (
-              <div className="text-red-500 text-sm py-2">{searchResults.error}</div>
+              <div className="text-red-500 text-sm py-2">
+                {searchResults.error}
+              </div>
             ) : searchResults.loading ? (
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
@@ -295,11 +263,16 @@ export const SearchSuggestions = ({
                       <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
                         {product.images?.[0] ? (
                           <img
-                            src={product.images?.[0] ? transformImageUrl(product.images[0]) : undefined}
+                            src={
+                              product.images?.[0]
+                                ? transformImageUrl(product.images[0])
+                                : undefined
+                            }
                             alt={product.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder.svg';
+                              (e.target as HTMLImageElement).src =
+                                "/placeholder.svg";
                             }}
                           />
                         ) : (
@@ -409,11 +382,16 @@ export const SearchSuggestions = ({
                   <div className="w-16 h-16 rounded-md bg-gray-100 mb-2 overflow-hidden flex items-center justify-center">
                     {product.images?.[0] ? (
                       <img
-                        src={product.images?.[0] ? transformImageUrl(product.images[0]) : undefined}
+                        src={
+                          product.images?.[0]
+                            ? transformImageUrl(product.images[0])
+                            : undefined
+                        }
                         alt={product.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder.svg";
                         }}
                       />
                     ) : (
@@ -423,7 +401,9 @@ export const SearchSuggestions = ({
                   <p className="text-xs font-medium truncate w-full">
                     {product.name}
                   </p>
-                  <p className="text-xs text-gray-500">{product.price.toLocaleString("ru-RU")}₽</p>
+                  <p className="text-xs text-gray-500">
+                    {product.price.toLocaleString("ru-RU")}₽
+                  </p>
                 </Link>
               ))
             ) : (
@@ -451,11 +431,16 @@ export const SearchSuggestions = ({
                   <div className="w-16 h-16 rounded-md bg-gray-100 mb-2 overflow-hidden flex items-center justify-center">
                     {product.images?.[0] ? (
                       <img
-                        src={product.images?.[0] ? transformImageUrl(product.images[0]) : undefined}
+                        src={
+                          product.images?.[0]
+                            ? transformImageUrl(product.images[0])
+                            : undefined
+                        }
                         alt={product.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder.svg";
                         }}
                       />
                     ) : (
@@ -465,7 +450,9 @@ export const SearchSuggestions = ({
                   <p className="text-xs font-medium truncate w-full">
                     {product.name}
                   </p>
-                  <p className="text-xs text-gray-500">{product.price.toLocaleString("ru-RU")}₽</p>
+                  <p className="text-xs text-gray-500">
+                    {product.price.toLocaleString("ru-RU")}₽
+                  </p>
                 </Link>
               ))}
             </div>

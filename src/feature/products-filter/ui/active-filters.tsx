@@ -73,6 +73,25 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange }) => {
     });
   }
 
+  if (currentParams.has_photos) {
+    activeFilters.push({
+      key: "has_photos",
+      value: "true",
+      label: "Только с фото"
+    });
+  }
+
+  if (currentParams.seller_name) {
+    const sellers = currentParams.seller_name.split(',');
+    sellers.forEach(seller => {
+      activeFilters.push({
+        key: "seller_name",
+        value: seller,
+        label: `Продавец: ${seller}`
+      });
+    });
+  }
+
   if (currentParams.global_category_id !== undefined) {
     // На сервере всегда показываем ID, чтобы избежать ошибки гидратации
     // На клиенте после монтирования показываем имя категории, если оно загружено

@@ -3,7 +3,12 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
-import { GetProductsDto, SortBy, SortOrder, SortType } from "@/entities/product";
+import {
+  GetProductsDto,
+  SortBy,
+  SortOrder,
+  SortType,
+} from "@/entities/product";
 
 export const useProductFilters = () => {
   const router = useRouter();
@@ -11,7 +16,7 @@ export const useProductFilters = () => {
 
   const currentParams = useMemo(() => {
     const params: Partial<GetProductsDto> = {};
-    
+
     try {
       // Устанавливаем сортировку по умолчанию, если не указана
       if (searchParams.has("sort")) {
@@ -43,7 +48,7 @@ export const useProductFilters = () => {
         params.sort_by = "total_sold";
         params.sort_order = "desc";
       }
-      
+
       if (searchParams.has("category")) {
         params.category = searchParams.get("category")!;
       }
@@ -65,8 +70,19 @@ export const useProductFilters = () => {
       if (searchParams.has("in_stock")) {
         params.in_stock = searchParams.get("in_stock") === "true";
       }
+      if (searchParams.has("has_photos")) {
+        params.has_photos = searchParams.get("has_photos") === "true";
+      }
+      if (searchParams.has("seller_name")) {
+        params.seller_name = searchParams.get("seller_name")!;
+      }
+      if (searchParams.has("seller_id")) {
+        params.seller_id = Number(searchParams.get("seller_id"));
+      }
       if (searchParams.has("global_category_id")) {
-        params.global_category_id = Number(searchParams.get("global_category_id"));
+        params.global_category_id = Number(
+          searchParams.get("global_category_id"),
+        );
       }
       // Приоритет у address, если его нет - используем city (как с адресом)
       if (searchParams.has("address")) {
@@ -85,10 +101,10 @@ export const useProductFilters = () => {
         if (!Number.isNaN(lat)) {
           params.lat = lat;
         }
-      } else if (typeof window !== 'undefined') {
+      } else if (typeof window !== "undefined") {
         // Если координат нет в URL, проверяем sessionStorage (автоматически определенный город)
         try {
-          const detected = sessionStorage.getItem('detected_city');
+          const detected = sessionStorage.getItem("detected_city");
           if (detected) {
             const parsed = JSON.parse(detected);
             if (parsed.lat != null) {
@@ -99,16 +115,16 @@ export const useProductFilters = () => {
           // Игнорируем ошибки
         }
       }
-      
+
       if (searchParams.has("lon")) {
         const lon = Number(searchParams.get("lon"));
         if (!Number.isNaN(lon)) {
           params.lon = lon;
         }
-      } else if (typeof window !== 'undefined') {
+      } else if (typeof window !== "undefined") {
         // Если координат нет в URL, проверяем sessionStorage (автоматически определенный город)
         try {
-          const detected = sessionStorage.getItem('detected_city');
+          const detected = sessionStorage.getItem("detected_city");
           if (detected) {
             const parsed = JSON.parse(detected);
             if (parsed.lon != null) {
@@ -125,81 +141,99 @@ export const useProductFilters = () => {
       params.sort_by = "total_sold";
       params.sort_order = "desc";
     }
-    
+
     return params;
   }, [searchParams]);
 
-  const updateUrlWithFilters = useCallback((newFilters: Record<string, string | number | boolean | undefined>) => {
-    try {
-      const newParams = new URLSearchParams(searchParams.toString());
-      
-      Object.entries(newFilters).forEach(([key, value]) => {
-        if (value === undefined || value === "" || value === null) {
-          newParams.delete(key);
-        } else {
-          newParams.set(key, String(value));
-        }
-      });
-      
-      const currentSort = searchParams.get("sort") || "popular";
-      newParams.set("sort", currentSort);
-      
-      router.push(`/products?${newParams.toString()}`, { scroll: false });
-    } catch (error) {
-      console.error("Error updating URL with filters:", error);
-    }
-  }, [router, searchParams]);
+  const updateUrlWithFilters = useCallback(
+    (newFilters: Record<string, string | number | boolean | undefined>) => {
+      try {
+        const newParams = new URLSearchParams(searchParams.toString());
+
+        Object.entries(newFilters).forEach(([key, value]) => {
+          if (value === undefined || value === "" || value === null) {
+            newParams.delete(key);
+          } else {
+            newParams.set(key, String(value));
+          }
+        });
+
+        const currentSort = searchParams.get("sort") || "popular";
+        newParams.set("sort", currentSort);
+
+        router.push(`/products?${newParams.toString()}`, { scroll: false });
+      } catch (error) {
+        console.error("Error updating URL with filters:", error);
+      }
+    },
+    [router, searchParams],
+  );
 
   const resetFilters = useCallback(() => {
     const newParams = new URLSearchParams();
-    
+
     const currentSort = searchParams.get("sort");
     if (currentSort) {
       newParams.set("sort", currentSort);
     }
-    
+
     router.push(`/products?${newParams.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
-  const applySort = useCallback((sortType: SortType) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set("sort", sortType);
-    router.push(`/products?${newParams.toString()}`, { scroll: false });
-  }, [router, searchParams]);
+  const applySort = useCallback(
+    (sortType: SortType) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.set("sort", sortType);
+      router.push(`/products?${newParams.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
-  const removeFilter = useCallback((key: string, value?: string) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    
-    if (key === "category" || key === "manufacturer") {
-      if (value) {
-        const currentValues = newParams.get(key)?.split(',') || [];
-        const newValues = currentValues.filter(v => v !== value);
-        if (newValues.length > 0) {
-          newParams.set(key, newValues.join(','));
+  const removeFilter = useCallback(
+    (key: string, value?: string) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+
+      if (
+        key === "category" ||
+        key === "manufacturer" ||
+        key === "seller_name"
+      ) {
+        if (value) {
+          const currentValues = newParams.get(key)?.split(",") || [];
+          const newValues = currentValues.filter((v) => v !== value);
+          if (newValues.length > 0) {
+            newParams.set(key, newValues.join(","));
+          } else {
+            newParams.delete(key);
+          }
         } else {
           newParams.delete(key);
         }
+      } else if (key === "price") {
+        newParams.delete("min_price");
+        newParams.delete("max_price");
+      } else if (key === "rating") {
+        newParams.delete("rating_from");
+        newParams.delete("rating_to");
+      } else if (key === "global_category_id") {
+        newParams.delete("global_category_id");
+      } else if (key === "has_photos") {
+        newParams.delete("has_photos");
       } else {
         newParams.delete(key);
       }
-    } else if (key === "price") {
-      newParams.delete("min_price");
-      newParams.delete("max_price");
-    } else if (key === "rating") {
-      newParams.delete("rating_from");
-      newParams.delete("rating_to");
-    } else if (key === "global_category_id") {
-      newParams.delete("global_category_id");
-    } else {
-      newParams.delete(key);
-    }
-    
-    router.push(`/products?${newParams.toString()}`, { scroll: false });
-  }, [router, searchParams]);
+      if (key === "seller_id") {
+        newParams.delete("seller_id");
+      }
+
+      router.push(`/products?${newParams.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   const currentSortType = useMemo(() => {
     const sort = searchParams.get("sort");
-    return sort as SortType || "popular";
+    return (sort as SortType) || "popular";
   }, [searchParams]);
 
   return {

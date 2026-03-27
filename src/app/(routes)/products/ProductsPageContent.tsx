@@ -1,19 +1,29 @@
 // app/(routes)/products/page.tsx
 "use client";
 
-import { Suspense, useEffect } from "react";
-import { SlidersHorizontal } from "lucide-react";
-import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { motion } from 'framer-motion';
+import { Suspense, useEffect } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
-import { Filter } from "@/widgets/filter";
-import ProductsList from "@/widgets/product-list";
 import { fetchProducts } from "@/entities/product/api";
+import {
+  GetProductsDto,
+  Product,
+  SortBy,
+  SortOrder,
+} from "@/entities/product/model/types";
+
 import { useProductFilters } from "@/feature/products-filter/hooks/useProductFilters";
 import ActiveFilters from "@/feature/products-filter/ui/active-filters";
 
+import { Filter } from "@/widgets/filter";
+import ProductsList from "@/widgets/product-list";
+
+import { useCategoryTree } from "@/shared/hooks/useCategory";
+import { useSellersList } from "@/shared/hooks/useSellerStatistics";
 import { BreadcrumbsDemo } from "@/shared/ui/breadcrumbs";
 import { Button } from "@/shared/ui/kit/button";
 import {
@@ -30,9 +40,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/kit/select";
-import { useCategoryTree } from "@/shared/hooks/useCategory";
-
-import { GetProductsDto, SortBy, SortOrder, Product } from "@/entities/product/model/types";
 
 type SortOption = {
   value: string;
@@ -42,11 +49,26 @@ type SortOption = {
 };
 
 const sortOptions: SortOption[] = [
-  { value: "popular", label: "Популярное", sort_by: "total_sold", sort_order: "desc" },
+  {
+    value: "popular",
+    label: "Популярное",
+    sort_by: "total_sold",
+    sort_order: "desc",
+  },
   { value: "new", label: "Новинки", sort_by: "created_at", sort_order: "desc" },
-  { value: "expensive", label: "Дорогие", sort_by: "price", sort_order: "desc" },
+  {
+    value: "expensive",
+    label: "Дорогие",
+    sort_by: "price",
+    sort_order: "desc",
+  },
   { value: "cheap", label: "Дешевые", sort_by: "price", sort_order: "asc" },
-  { value: "interesting", label: "Интересные", sort_by: "rating", sort_order: "desc" },
+  {
+    value: "interesting",
+    label: "Интересные",
+    sort_by: "rating",
+    sort_order: "desc",
+  },
 ];
 
 function ProductsContent() {
@@ -54,12 +76,12 @@ function ProductsContent() {
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const { data: categoryTreeData } = useCategoryTree(true);
   const searchParams = useSearchParams();
-  const sellerId = searchParams.get('seller_id');
-  const address = searchParams.get('address'); 
-  const city = searchParams.get('city'); 
-  const lat = searchParams.get('lat');
-  const lon = searchParams.get('lon');
-
+  const sellerId = searchParams.get("seller_id");
+  const address = searchParams.get("address");
+  const city = searchParams.get("city");
+  const lat = searchParams.get("lat");
+  const lon = searchParams.get("lon");
+  const { data: sellersList, isLoading: sellersLoading } = useSellersList();
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -69,25 +91,23 @@ function ProductsContent() {
       },
     },
   };
-  
+
   const sellerParams = useMemo(() => {
     const baseParams: any = {
-      size: 1, 
-      sort_by: 'total_sold' as const,
-      sort_order: 'desc' as const,
+      size: 1,
+      sort_by: "total_sold" as const,
+      sort_order: "desc" as const,
     };
-    
-    
+
     if (address) {
       baseParams.address = address;
     } else if (city) {
-      
       baseParams.city = city;
     }
     if (sellerId) {
       baseParams.seller_id = Number(sellerId);
     }
-    
+
     if (lat) {
       const latNum = Number(lat);
       if (!Number.isNaN(latNum)) {
@@ -100,47 +120,53 @@ function ProductsContent() {
         baseParams.lon = lonNum;
       }
     }
-    
+
     return baseParams;
   }, [address, city, sellerId, lat, lon]);
-  
+
   const { data: sellerData } = useQuery({
     queryKey: ["products", "seller_check", sellerParams],
     queryFn: () => fetchProducts(sellerParams),
-    enabled: !!sellerId, 
+    enabled: !!sellerId,
     staleTime: 5 * 60 * 1000,
   });
-  
-  
-  const hasSellerProducts = sellerData && sellerData.count > 0 && sellerData.result && sellerData.result.length > 0;
-  
-  
+
+  const sellerOptions = useMemo(() => {
+    return sellersList?.map((s) => ({ value: s.id, label: s.name })) || [];
+  }, [sellersList]);
+
+  const hasSellerProducts =
+    sellerData &&
+    sellerData.count > 0 &&
+    sellerData.result &&
+    sellerData.result.length > 0;
+
   const finalParams = useMemo(() => {
     const params = { ...currentParams };
-    
-    
+
     if (sellerId && hasSellerProducts) {
       params.seller_id = Number(sellerId);
     } else if (sellerId && hasSellerProducts === false) {
-      
       delete params.seller_id;
     }
-    
+
     return params;
   }, [currentParams, sellerId, hasSellerProducts]);
 
   const { data: productsData, isLoading } = useQuery({
     queryKey: ["products", finalParams],
-    queryFn: () => fetchProducts({
-      ...finalParams,
-      page: 1,
-      size: 100,
-    }),
+    queryFn: () =>
+      fetchProducts({
+        ...finalParams,
+        page: 1,
+        size: 100,
+      }),
   });
 
   const products = productsData?.result || [];
 
-  const selectedSort = sortOptions.find(opt => opt.value === currentSortType) || sortOptions[0];
+  const selectedSort =
+    sortOptions.find((opt) => opt.value === currentSortType) || sortOptions[0];
 
   const listParams: Partial<GetProductsDto> = {
     ...finalParams,
@@ -148,7 +174,6 @@ function ProductsContent() {
     sort_order: selectedSort.sort_order,
   };
 
-  
   const categoryName = useMemo(() => {
     if (currentParams.category) {
       return currentParams.category;
@@ -166,41 +191,50 @@ function ProductsContent() {
         }
         return null;
       };
-      const category = findCategoryById(categoryTreeData.result, currentParams.global_category_id);
+      const category = findCategoryById(
+        categoryTreeData.result,
+        currentParams.global_category_id,
+      );
       return category?.name || null;
     }
     return null;
-  }, [currentParams.category, currentParams.global_category_id, categoryTreeData]);
+  }, [
+    currentParams.category,
+    currentParams.global_category_id,
+    categoryTreeData,
+  ]);
 
   const { minPrice, maxPrice, categories, manufacturers } = useMemo(() => {
     const productsWithPrice = products.filter((p: Product) => p.price != null);
-    
-    const min = productsWithPrice.length > 0 
-      ? Math.min(...productsWithPrice.map((p: Product) => p.price))
-      : 0;
-    
-    const max = productsWithPrice.length > 0 
-      ? Math.max(...productsWithPrice.map((p: Product) => p.price))
-      : 10000;
-    
+
+    const min =
+      productsWithPrice.length > 0
+        ? Math.min(...productsWithPrice.map((p: Product) => p.price))
+        : 0;
+
+    const max =
+      productsWithPrice.length > 0
+        ? Math.max(...productsWithPrice.map((p: Product) => p.price))
+        : 10000;
+
     const uniqueCategories = Array.from(
       new Set(
         products
           .filter((p: Product) => p.category_name)
           .map((p: Product) => p.category_name as string)
-          .filter(Boolean)
-      )
+          .filter(Boolean),
+      ),
     );
-    
+
     const uniqueManufacturers = Array.from(
       new Set(
         products
           .filter((p: Product) => p.manufacturer_name)
           .map((p: Product) => p.manufacturer_name as string)
-          .filter(Boolean)
-      )
+          .filter(Boolean),
+      ),
     );
-    
+
     return {
       minPrice: min,
       maxPrice: max,
@@ -212,7 +246,7 @@ function ProductsContent() {
   return (
     <div className="py-2 pb-12">
       <div className="container">
-        <BreadcrumbsDemo 
+        <BreadcrumbsDemo
           isProduct={false}
           categoryName={categoryName || null}
         />
@@ -224,7 +258,8 @@ function ProductsContent() {
             transition={{ duration: 0.5 }}
             className="text-lg font-medium tracking-tight"
           >
-            {categoryName || "Категория"} ({totalCount !== null ? totalCount : "..."})
+            {categoryName || "Категория"} (
+            {totalCount !== null ? totalCount : "..."})
           </motion.h1>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -233,10 +268,7 @@ function ProductsContent() {
             transition={{ duration: 0.5 }}
             className="flex gap-2 pb-4"
           >
-            <Select
-              value={currentSortType}
-              onValueChange={applySort}
-            >
+            <Select value={currentSortType} onValueChange={applySort}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -259,12 +291,13 @@ function ProductsContent() {
               </DialogTrigger>
               <DialogContent className="p-0">
                 <DialogTitle></DialogTitle>
-                <Filter 
+                <Filter
                   products={products}
                   initialMinPrice={minPrice}
                   initialMaxPrice={maxPrice}
                   categories={categories}
                   manufacturers={manufacturers}
+                  sellerOptions={sellerOptions}
                 />
               </DialogContent>
             </Dialog>
@@ -273,23 +306,24 @@ function ProductsContent() {
         <ActiveFilters onFiltersChange={() => {}} />
         <div className="flex pt-4 relative">
           <div className="hidden md:block w-80">
-            <Filter 
+            <Filter
               products={products}
               initialMinPrice={minPrice}
               initialMaxPrice={maxPrice}
               categories={categories}
               manufacturers={manufacturers}
+              sellerOptions={sellerOptions}
             />
           </div>
-           <motion.div
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
             className="flex-1"
           >
-            <ProductsList 
-              params={listParams} 
+            <ProductsList
+              params={listParams}
               onTotalCountChange={setTotalCount}
             />
           </motion.div>
@@ -301,15 +335,17 @@ function ProductsContent() {
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={
-      <div className="py-2 pb-12">
-        <div className="container">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-lg">Загрузка...</div>
+    <Suspense
+      fallback={
+        <div className="py-2 pb-12">
+          <div className="container">
+            <div className="flex justify-center items-center h-64">
+              <div className="text-lg">Загрузка...</div>
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ProductsContent />
     </Suspense>
   );

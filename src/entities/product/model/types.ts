@@ -89,6 +89,8 @@ export interface GetProductsDto {
   city?: string;
   address?: string;
   seller_id?: number;
+  seller_name?: string;
+  has_photos?: boolean;
 }
 
 export interface GetProductDto {
