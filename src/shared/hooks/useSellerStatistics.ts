@@ -25,6 +25,6 @@ export const useSellersList = (search?: string, limit: number = 500) => {
       const data = await response.json();
       return data.sellers as SellerItem[];
     },
-    staleTime: 5 * 60 * 1000, // 5 минут
+    staleTime: 1, // 5 минут
   });
 };

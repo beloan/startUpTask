@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { GetProductDto, GetProductsDto } from "../model/types";
+import { GetProductDto, GetProductsDto, ProductsResponse } from "../model/types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://app.tablecrm.com/api/v1/mp";
@@ -35,7 +35,7 @@ export function getDetectedCityFromResponse(data: any): {
   return null;
 }
 
-export const fetchProducts = async (params: GetProductsDto) => {
+export const fetchProducts = async (params: GetProductsDto): Promise<ProductsResponse> => {
   try {
     let addressParam = params.address || params.city;
     let lat = params.lat;
@@ -91,6 +91,7 @@ export const fetchProducts = async (params: GetProductsDto) => {
       in_stock: params.in_stock,
       global_category_id: params.global_category_id,
       seller_id: params.seller_id,
+      name: params.name,
     };
 
     if (addressParam) {

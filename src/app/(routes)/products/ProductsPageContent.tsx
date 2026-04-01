@@ -1,12 +1,12 @@
-// app/(routes)/products/page.tsx
+// app/(routes)/products/ProductsPageContent.tsx
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
-import React, { useCallback, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import React from "react";
 
 import { fetchProducts } from "@/entities/product/api";
 import {
@@ -23,7 +23,6 @@ import { Filter } from "@/widgets/filter";
 import ProductsList from "@/widgets/product-list";
 
 import { useCategoryTree } from "@/shared/hooks/useCategory";
-import { useSellersList } from "@/shared/hooks/useSellerStatistics";
 import { BreadcrumbsDemo } from "@/shared/ui/breadcrumbs";
 import { Button } from "@/shared/ui/kit/button";
 import {
@@ -76,12 +75,13 @@ function ProductsContent() {
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const { data: categoryTreeData } = useCategoryTree(true);
   const searchParams = useSearchParams();
+  const q = searchParams.get("q") || "";
   const sellerId = searchParams.get("seller_id");
   const address = searchParams.get("address");
   const city = searchParams.get("city");
   const lat = searchParams.get("lat");
   const lon = searchParams.get("lon");
-  const { data: sellersList, isLoading: sellersLoading } = useSellersList();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -92,66 +92,16 @@ function ProductsContent() {
     },
   };
 
-  const sellerParams = useMemo(() => {
-    const baseParams: any = {
-      size: 1,
-      sort_by: "total_sold" as const,
-      sort_order: "desc" as const,
-    };
-
-    if (address) {
-      baseParams.address = address;
-    } else if (city) {
-      baseParams.city = city;
-    }
-    if (sellerId) {
-      baseParams.seller_id = Number(sellerId);
-    }
-
-    if (lat) {
-      const latNum = Number(lat);
-      if (!Number.isNaN(latNum)) {
-        baseParams.lat = latNum;
-      }
-    }
-    if (lon) {
-      const lonNum = Number(lon);
-      if (!Number.isNaN(lonNum)) {
-        baseParams.lon = lonNum;
-      }
-    }
-
-    return baseParams;
-  }, [address, city, sellerId, lat, lon]);
-
-  const { data: sellerData } = useQuery({
-    queryKey: ["products", "seller_check", sellerParams],
-    queryFn: () => fetchProducts(sellerParams),
-    enabled: !!sellerId,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const sellerOptions = useMemo(() => {
-    return sellersList?.map((s) => ({ value: s.id, label: s.name })) || [];
-  }, [sellersList]);
-
-  const hasSellerProducts =
-    sellerData &&
-    sellerData.count > 0 &&
-    sellerData.result &&
-    sellerData.result.length > 0;
-
   const finalParams = useMemo(() => {
     const params = { ...currentParams };
-
-    if (sellerId && hasSellerProducts) {
-      params.seller_id = Number(sellerId);
-    } else if (sellerId && hasSellerProducts === false) {
-      delete params.seller_id;
+    if (q) {
+      params.name = q;
     }
-
+    if (sellerId) {
+      params.seller_id = Number(sellerId);
+    }
     return params;
-  }, [currentParams, sellerId, hasSellerProducts]);
+  }, [currentParams, sellerId, q]);
 
   const { data: productsData, isLoading } = useQuery({
     queryKey: ["products", finalParams],
@@ -162,8 +112,13 @@ function ProductsContent() {
         size: 100,
       }),
   });
+  const firstPage = (productsData as any)?.pages?.[0] || productsData;
+  const products = firstPage?.result || [];
+  const sellers = firstPage?.sellers || [];
 
-  const products = productsData?.result || [];
+  const sellerOptions = useMemo(() => {
+    return sellers.map((s: any) => ({ value: s.id, label: s.name }));
+  }, [sellers]);
 
   const selectedSort =
     sortOptions.find((opt) => opt.value === currentSortType) || sortOptions[0];
@@ -258,7 +213,7 @@ function ProductsContent() {
             transition={{ duration: 0.5 }}
             className="text-lg font-medium tracking-tight"
           >
-            {categoryName || "Категория"} (
+            {q ? `Результаты поиска: "${q}" ` : categoryName || "Категория"}(
             {totalCount !== null ? totalCount : "..."})
           </motion.h1>
           <motion.div

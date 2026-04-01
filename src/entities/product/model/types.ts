@@ -72,6 +72,7 @@ export type SortType = "popular" | "new" | "expensive" | "cheap" | "interesting"
 export interface GetProductsDto {
   phone?: string;
   size?: number;
+  name?: string;
   lat?: number;
   lon?: number;
   sort_by?: SortBy;
@@ -117,3 +118,15 @@ export type SortOption = {
   sort_by: SortBy;
   sort_order: SortOrder;
 };
+
+export interface ProductsResponse {
+  result: Product[];
+  count: number;
+  page: number;
+  size: number;
+  sellers?: Array<{ id: number; name: string }>;
+  processing_time_ms?: number;
+  detected_city?: string;
+  detected_lat?: number;
+  detected_lon?: number;
+}

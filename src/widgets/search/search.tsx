@@ -66,7 +66,7 @@ export const SearchBar = () => {
 
       setIsExpanded(false);
       setShowSuggestions(false);
-      router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+      router.push(`/products?q=${encodeURIComponent(searchTerm.trim())}`);
     }
   };
 
