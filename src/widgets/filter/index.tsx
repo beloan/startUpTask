@@ -565,12 +565,12 @@ export const Filter = ({
                     onValueChange={handleSellerChange}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Выберите продавца" />
+                      <SelectValue placeholder="Выберите продавца" className="cursor-pointer"/>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Все продавцы</SelectItem>
+                      <SelectItem value="all" className="cursor-pointer">Все продавцы</SelectItem>
                       {sellerOptions.map((seller) => (
-                        <SelectItem key={seller.value} value={seller.value.toString()}>
+                        <SelectItem key={seller.value} value={seller.value.toString()} className="cursor-pointer">
                           {seller.label}
                         </SelectItem>
                       ))}

@@ -1,3 +1,4 @@
+// useProductFilters.ts
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,7 +19,12 @@ export const useProductFilters = () => {
     const params: Partial<GetProductsDto> = {};
 
     try {
-      // Устанавливаем сортировку по умолчанию, если не указана
+      // Чтение q из URL и преобразование в name для API
+      if (searchParams.has("q")) {
+        params.name = searchParams.get("q")!; // исправлено: было searchParams.get("name")
+      }
+
+      // ... остальные параметры (без изменений)
       if (searchParams.has("sort")) {
         const sortValue = searchParams.get("sort");
         switch (sortValue) {
@@ -44,7 +50,6 @@ export const useProductFilters = () => {
             break;
         }
       } else {
-        // Сортировка по умолчанию
         params.sort_by = "total_sold";
         params.sort_order = "desc";
       }
@@ -80,64 +85,40 @@ export const useProductFilters = () => {
         params.seller_id = Number(searchParams.get("seller_id"));
       }
       if (searchParams.has("global_category_id")) {
-        params.global_category_id = Number(
-          searchParams.get("global_category_id"),
-        );
+        params.global_category_id = Number(searchParams.get("global_category_id"));
       }
-      // Приоритет у address, если его нет - используем city (как с адресом)
       if (searchParams.has("address")) {
         params.address = searchParams.get("address")!;
       } else if (searchParams.has("city")) {
-        // Передаем полное название города напрямую из URL (как с адресом)
         params.city = searchParams.get("city")!;
       }
-      if (searchParams.has("seller_id")) {
-        params.seller_id = Number(searchParams.get("seller_id"));
-      }
-      // Координаты для выбора ближайшей цены
-      // Сначала проверяем URL, если нет - берем из sessionStorage (автоматически определенный город)
+      // Координаты
       if (searchParams.has("lat")) {
         const lat = Number(searchParams.get("lat"));
-        if (!Number.isNaN(lat)) {
-          params.lat = lat;
-        }
+        if (!Number.isNaN(lat)) params.lat = lat;
       } else if (typeof window !== "undefined") {
-        // Если координат нет в URL, проверяем sessionStorage (автоматически определенный город)
         try {
           const detected = sessionStorage.getItem("detected_city");
           if (detected) {
             const parsed = JSON.parse(detected);
-            if (parsed.lat != null) {
-              params.lat = parsed.lat;
-            }
+            if (parsed.lat != null) params.lat = parsed.lat;
           }
-        } catch (e) {
-          // Игнорируем ошибки
-        }
+        } catch (e) {}
       }
-
       if (searchParams.has("lon")) {
         const lon = Number(searchParams.get("lon"));
-        if (!Number.isNaN(lon)) {
-          params.lon = lon;
-        }
+        if (!Number.isNaN(lon)) params.lon = lon;
       } else if (typeof window !== "undefined") {
-        // Если координат нет в URL, проверяем sessionStorage (автоматически определенный город)
         try {
           const detected = sessionStorage.getItem("detected_city");
           if (detected) {
             const parsed = JSON.parse(detected);
-            if (parsed.lon != null) {
-              params.lon = parsed.lon;
-            }
+            if (parsed.lon != null) params.lon = parsed.lon;
           }
-        } catch (e) {
-          // Игнорируем ошибки
-        }
+        } catch (e) {}
       }
     } catch (error) {
       console.error("Error parsing search params:", error);
-      // В случае ошибки устанавливаем сортировку по умолчанию
       params.sort_by = "total_sold";
       params.sort_order = "desc";
     }
@@ -149,6 +130,12 @@ export const useProductFilters = () => {
     (newFilters: Record<string, string | number | boolean | undefined>) => {
       try {
         const newParams = new URLSearchParams(searchParams.toString());
+
+        // Сохраняем текущий q, если он есть и не переопределён
+        const currentQ = searchParams.get("q");
+        if (currentQ && !newFilters.q) {
+          newParams.set("q", currentQ);
+        }
 
         Object.entries(newFilters).forEach(([key, value]) => {
           if (value === undefined || value === "" || value === null) {
@@ -171,10 +158,14 @@ export const useProductFilters = () => {
 
   const resetFilters = useCallback(() => {
     const newParams = new URLSearchParams();
-
     const currentSort = searchParams.get("sort");
+    const currentQ = searchParams.get("q");
+
     if (currentSort) {
       newParams.set("sort", currentSort);
+    }
+    if (currentQ) {
+      newParams.set("q", currentQ);
     }
 
     router.push(`/products?${newParams.toString()}`, { scroll: false });
@@ -184,6 +175,10 @@ export const useProductFilters = () => {
     (sortType: SortType) => {
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.set("sort", sortType);
+      const currentQ = searchParams.get("q");
+      if (currentQ) {
+        newParams.set("q", currentQ);
+      }
       router.push(`/products?${newParams.toString()}`, { scroll: false });
     },
     [router, searchParams],
@@ -193,11 +188,7 @@ export const useProductFilters = () => {
     (key: string, value?: string) => {
       const newParams = new URLSearchParams(searchParams.toString());
 
-      if (
-        key === "category" ||
-        key === "manufacturer" ||
-        key === "seller_name"
-      ) {
+      if (key === "category" || key === "manufacturer" || key === "seller_name") {
         if (value) {
           const currentValues = newParams.get(key)?.split(",") || [];
           const newValues = currentValues.filter((v) => v !== value);
@@ -219,11 +210,10 @@ export const useProductFilters = () => {
         newParams.delete("global_category_id");
       } else if (key === "has_photos") {
         newParams.delete("has_photos");
+      } else if (key === "seller_id") {
+        newParams.delete("seller_id");
       } else {
         newParams.delete(key);
-      }
-      if (key === "seller_id") {
-        newParams.delete("seller_id");
       }
 
       router.push(`/products?${newParams.toString()}`, { scroll: false });
