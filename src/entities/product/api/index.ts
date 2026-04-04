@@ -92,6 +92,7 @@ export const fetchProducts = async (params: GetProductsDto): Promise<ProductsRes
       global_category_id: params.global_category_id,
       seller_id: params.seller_id,
       name: params.name,
+      apply_radius_filter: true,
     };
 
     if (addressParam) {

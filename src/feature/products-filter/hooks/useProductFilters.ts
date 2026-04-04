@@ -72,6 +72,9 @@ export const useProductFilters = () => {
       if (searchParams.has("rating_to")) {
         params.rating_to = Number(searchParams.get("rating_to"));
       }
+      if (searchParams.has("apply_radius_filter")) {
+        params.apply_radius_filter = searchParams.get("apply_radius_filter") === "true";
+      }
       if (searchParams.has("in_stock")) {
         params.in_stock = searchParams.get("in_stock") === "true";
       }

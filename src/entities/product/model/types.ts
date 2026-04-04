@@ -92,6 +92,7 @@ export interface GetProductsDto {
   seller_id?: number;
   seller_name?: string;
   has_photos?: boolean;
+  apply_radius_filter?: boolean;
 }
 
 export interface GetProductDto {
