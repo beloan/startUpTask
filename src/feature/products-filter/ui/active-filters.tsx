@@ -10,9 +10,10 @@ import { useCategoryTree } from "@/shared/hooks/useCategory";
 
 interface ActiveFiltersProps {
   onFiltersChange?: () => void;
+  sellerMap?: Record<number, string>;
 }
 
-const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange }) => {
+const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange, sellerMap = {} }) => {
   const { currentParams, removeFilter, resetFilters } = useProductFilters();
   const { data: globalCategoriesData } = useCategoryTree(true);
   const [isMounted, setIsMounted] = useState(false);
@@ -105,6 +106,20 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange }) => {
       key: "global_category_id",
       value: currentParams.global_category_id.toString(),
       label: `Глобальная категория: ${categoryName}`
+    });
+  }
+
+  if (currentParams.seller_id !== undefined && sellerMap[currentParams.seller_id]) {
+    activeFilters.push({
+      key: "seller_id",
+      value: currentParams.seller_id.toString(),
+      label: `Продавец: ${sellerMap[currentParams.seller_id]}`
+    });
+  } else if (currentParams.seller_id !== undefined) {
+    activeFilters.push({
+      key: "seller_id",
+      value: currentParams.seller_id.toString(),
+      label: `Продавец ID: ${currentParams.seller_id}`
     });
   }
 

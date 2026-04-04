@@ -119,7 +119,13 @@ function ProductsContent() {
   const sellerOptions = useMemo(() => {
     return sellers.map((s: any) => ({ value: s.id, label: s.name }));
   }, [sellers]);
-
+  const sellerMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    sellers.forEach((s: any) => {
+      map[s.id] = s.name;
+    });
+    return map;
+  }, [sellers]);
   const selectedSort =
     sortOptions.find((opt) => opt.value === currentSortType) || sortOptions[0];
 
@@ -258,7 +264,7 @@ function ProductsContent() {
             </Dialog>
           </motion.div>
         </div>
-        <ActiveFilters onFiltersChange={() => {}} />
+        <ActiveFilters onFiltersChange={() => {}} sellerMap={sellerMap} />
         <div className="flex pt-4 relative">
           <div className="hidden md:block w-80">
             <Filter
