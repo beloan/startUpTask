@@ -58,6 +58,7 @@ const QuickBuyModal = ({
   // Сброс формы при открытии
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line
       setFormData(prev => ({
         ...prev,
         quantity: initialQuantity,
@@ -117,6 +118,7 @@ const QuickBuyModal = ({
       nomenclature_id: productId,
       quantity: formData.quantity,
       ...(warehouseId && { warehouse_id: warehouseId }),
+      is_from_cart: false,
     }];
 
     const delivery: any = {
@@ -138,13 +140,12 @@ const QuickBuyModal = ({
         goods,
         delivery,
         contragent_phone: phone,
-        contragent_first_name: userDataAuth?.name || formData.name,
         additional_data: additionalData,
       },
       {
         onSuccess: (data) => {
           setIsSuccess(true);
-          toast.success(`Заказ №${data.order_id || ''} оформлен!`);
+          toast.success(`Заказ оформлен!`);
           setTimeout(() => {
             onClose();
           }, 2500);
@@ -189,7 +190,7 @@ const QuickBuyModal = ({
         // ignore
       }
     }
-
+    // eslint-disable-next-line
     setFormData(prev => {
       // Определяем источники данных с приоритетом: существующее значение > userDataAuth > сохраненное > URL > IP
       const name = prev.name || userDataAuth?.name || "";
