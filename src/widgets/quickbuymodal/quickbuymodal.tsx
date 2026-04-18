@@ -3,6 +3,7 @@
 import { LockIcon, Loader2, Minus, Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 import { Button } from "@/shared/ui/kit/button";
 import { Input } from "@/shared/ui/kit/input";
@@ -16,6 +17,7 @@ import {
 import { Textarea } from "@/shared/ui/kit/textarea";
 import { Checkbox } from "@/shared/ui/kit/checkbox";
 import { useDataUser } from "@/shared/hooks/useDataUser";
+import { useCreateOrder } from "@/shared/hooks/useOrders";
 
 interface QuickBuyModalProps {
   productId: number;
@@ -23,33 +25,47 @@ interface QuickBuyModalProps {
   productName: string;
   productPrice: number;
   unitName?: string;
+  warehouseId?: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
 const QuickBuyModal = ({
   productId,
-  quantity,
+  quantity: initialQuantity,
   productName,
   productPrice,
   unitName = "шт.",
+  warehouseId,
   isOpen,
   onClose,
 }: QuickBuyModalProps) => {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    quantity: 1,
+    quantity: initialQuantity,
     address: "",
     note: "",
     isAnotherPerson: false,
     recipientName: "",
     recipientPhone: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const userDataAuth = useDataUser();
   const searchParams = useSearchParams();
+  const createOrderMutation = useCreateOrder();
+
+  // Сброс формы при открытии
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line
+      setFormData(prev => ({
+        ...prev,
+        quantity: initialQuantity,
+      }));
+      setIsSuccess(false);
+    }
+  }, [isOpen, initialQuantity]);
 
   const handleDecreaseQuantity = () => {
     setFormData(prev => ({
@@ -79,25 +95,74 @@ const QuickBuyModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    localStorage.setItem("user_delivery_data", JSON.stringify(formData));
 
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSuccess(true);
-      
-      setTimeout(() => {
-        setIsSuccess(false);
-        onClose();
-      }, 3000);
-    }, 1500);
+    // Проверка телефона
+    const phone = (userDataAuth?.contragent_phone || formData.phone || "").trim();
+    if (!phone) {
+      toast.error("Введите номер телефона");
+      return;
+    }
+
+    // Сохраняем данные в localStorage
+    try {
+      localStorage.setItem("user_delivery_data", JSON.stringify({
+        name: formData.name,
+        phone: phone,
+        address: formData.address,
+      }));
+    } catch (error) {
+      // игнорируем
+    }
+
+    const goods = [{
+      nomenclature_id: productId,
+      quantity: formData.quantity,
+      ...(warehouseId && { warehouse_id: warehouseId }),
+      is_from_cart: false,
+    }];
+
+    const delivery: any = {
+      address: formData.address,
+      note: formData.note || undefined,
+    };
+
+    if (formData.isAnotherPerson) {
+      delivery.recipient = {
+        name: formData.recipientName,
+        phone: formData.recipientPhone,
+      };
+    }
+
+    const additionalData: any[] = [];
+
+    createOrderMutation.mutate(
+      {
+        goods,
+        delivery,
+        contragent_phone: phone,
+        additional_data: additionalData,
+      },
+      {
+        onSuccess: (data) => {
+          setIsSuccess(true);
+          toast.success(`Заказ оформлен!`);
+          setTimeout(() => {
+            onClose();
+          }, 2500);
+        },
+        onError: (error: any) => {
+          toast.error(error?.response?.data?.detail || "Не удалось оформить заказ");
+        },
+      }
+    );
   };
-  
+
+  // Автозаполнение данных пользователя и адреса
   useEffect(() => {
     const addressFromUrl = searchParams.get("address");
     const cityFromUrl = searchParams.get("city");
     const hasUrlParams = addressFromUrl || cityFromUrl;
-    
+
     let addressFromStorage = "";
     if (hasUrlParams && typeof window !== 'undefined') {
       try {
@@ -110,7 +175,7 @@ const QuickBuyModal = ({
         console.error("Error reading localStorage:", error);
       }
     }
-    
+
     let ipDetectedAddress = "";
     if (!hasUrlParams && typeof window !== 'undefined') {
       try {
@@ -122,40 +187,45 @@ const QuickBuyModal = ({
           }
         }
       } catch (error) {
+        // ignore
       }
     }
+    // eslint-disable-next-line
+    setFormData(prev => {
+      // Определяем источники данных с приоритетом: существующее значение > userDataAuth > сохраненное > URL > IP
+      const name = prev.name || userDataAuth?.name || "";
+      const phone = prev.phone || userDataAuth?.contragent_phone || "";
+      const address = prev.address || addressFromUrl || cityFromUrl || addressFromStorage || ipDetectedAddress || userDataAuth?.address || "";
 
-    if (userDataAuth) {
-      setFormData(prev => ({
-        ...prev,
-        name: userDataAuth!.name,
-        phone: userDataAuth!.contragent_phone,
-        address: addressFromUrl || cityFromUrl || addressFromStorage || ipDetectedAddress || userDataAuth!.address || "",
-      }));
-    } else {
-      const savedData = localStorage.getItem("user_delivery_data");
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData);
-          setFormData(prev => ({
-            ...prev,
-            name: parsedData!.name,
-            phone: parsedData!.contragent_phone,
-            address: addressFromUrl || cityFromUrl || addressFromStorage || ipDetectedAddress || parsedData!.address || "",
-          }));
-        } catch (error) {
-          console.error("Error parsing localStorage data:", error);
+      // Загружаем сохраненные данные, если нет пользователя и поля пусты
+      if (!userDataAuth) {
+        const savedData = localStorage.getItem("user_delivery_data");
+        if (savedData) {
+          try {
+            const parsed = JSON.parse(savedData);
+            return {
+              ...prev,
+              name: prev.name || parsed.name || "",
+              phone: prev.phone || parsed.phone || "",
+              address: prev.address || addressFromUrl || cityFromUrl || addressFromStorage || ipDetectedAddress || parsed.address || "",
+            };
+          } catch (error) {
+            console.error("Error parsing localStorage data:", error);
+          }
         }
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          address: addressFromUrl || cityFromUrl || addressFromStorage || ipDetectedAddress || "",
-        }));
       }
-    }
+
+      return {
+        ...prev,
+        name,
+        phone,
+        address,
+      };
+    });
   }, [searchParams, userDataAuth]);
 
   const totalPrice = productPrice * formData.quantity;
+  const isLoading = createOrderMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -168,12 +238,13 @@ const QuickBuyModal = ({
           <div className="text-center py-6">
             <div className="text-green-500 text-4xl mb-3">✓</div>
             <h3 className="text-lg font-semibold mb-2">Заявка принята!</h3>
+            <p className="text-sm text-gray-500">Мы свяжемся с вами для подтверждения</p>
           </div>
         ) : (
           <>
             <div className="border rounded-lg p-3 mb-3">
               <p className="font-medium truncate text-sm mb-3">{productName}</p>
-              
+
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="w-full sm:w-40">
                   <div className="flex items-center justify-between mb-1">
@@ -193,7 +264,7 @@ const QuickBuyModal = ({
                     >
                       <Minus width={16} height={16} />
                     </Button>
-                    
+
                     <Input
                       id="quantity"
                       name="quantity"
@@ -205,7 +276,7 @@ const QuickBuyModal = ({
                       className="h-10 sm:h-8 text-center rounded-none border-x-0 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       disabled={isLoading}
                     />
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -218,7 +289,7 @@ const QuickBuyModal = ({
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 flex flex-col items-start sm:items-end mt-2 sm:mt-0">
                   <span className="text-lg sm:text-xl text-black-600">
                     {totalPrice.toLocaleString('ru-RU')}₽
@@ -229,7 +300,7 @@ const QuickBuyModal = ({
                 </div>
               </div>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="space-y-2">
                 <div className="flex flex-col gap-1">
@@ -284,7 +355,7 @@ const QuickBuyModal = ({
                   />
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="isAnotherPerson"
@@ -299,7 +370,7 @@ const QuickBuyModal = ({
                   Заказ оформляется для другого человека
                 </Label>
               </div>
-              
+
               {formData.isAnotherPerson && (
                 <div className="space-y-2">
                   <div className="flex flex-col gap-1">
@@ -330,7 +401,7 @@ const QuickBuyModal = ({
                   </div>
                 </div>
               )}
-              
+
               <Button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer h-10 text-sm"
