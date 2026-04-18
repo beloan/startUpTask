@@ -8,34 +8,34 @@ import { Cart } from "../types/cart";
 import { cartKeys } from "@/entities/cart/model/hooks";
 import { getCityFromStorage } from "../lib/utmStorage";
 
-export const useCreateOrder = () => {
+type OrderMutationVariables = Omit<CreateOrderParams, 'contragent_phone'> & { contragent_phone?: string };
 
+export const useCreateOrder = () => {
   const queryClient = useQueryClient();
-  const contragentPhone = useContragentPhone();
+  const hookContragentPhone = useContragentPhone();
   const { utmParams } = useUtmParams();
   const city = getCityFromStorage();
 
   return useMutation({
-    mutationFn: async (orderData: Omit<CreateOrderParams, "contragent_phone">) => {
+    mutationFn: async (orderData: OrderMutationVariables) => {
+      const phone = orderData.contragent_phone || hookContragentPhone;
       return createOrder({
         ...orderData,
-        contragent_phone: contragentPhone,
+        contragent_phone: phone,
         city,
         ...utmParams,
       });
     },
     onSuccess: (response) => {
-      // Если корзина очищена на бэкенде, обновляем локальное состояние
       if (response.cart_cleared) {
-        const cartQueryKey = cartKeys.cartWithPhone(contragentPhone);
+        const cartQueryKey = cartKeys.cartWithPhone(hookContragentPhone);
         const emptyCart: Cart = {
-          contragent_phone: contragentPhone,
+          contragent_phone: hookContragentPhone,
           goods: [],
           total_count: "0",
         };
         queryClient.setQueryData(cartQueryKey, emptyCart);
       } else {
-        // Иначе просто инвалидируем кеш, чтобы запросить актуальное состояние
         queryClient.invalidateQueries({ queryKey: cartKeys.root });
       }
     },

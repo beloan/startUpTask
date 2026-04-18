@@ -44,6 +44,7 @@ export const AddToCart = ({
     price: number;
     name: string;
     images?: string[];
+    available_warehouses?: Array<{ warehouse_id: number; [key: string]: any }>;
   } | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export const AddToCart = ({
     lon?: number;
   } | null>(null);
 
-   useEffect(() => {
+  useEffect(() => {
     if (dataUser && pendingAdd) {
       addToCartMutation.mutate(
         { nomenclature_id: pendingAdd.id, quantity: pendingAdd.quantity },
@@ -150,6 +151,7 @@ export const AddToCart = ({
         price: product.price,
         name: product.name,
         images: product.images || [],
+        available_warehouses: product.available_warehouses || [],
       });
     } catch (error) {
       console.error("Ошибка при загрузке товара:", error);
@@ -157,6 +159,7 @@ export const AddToCart = ({
         price: initialPrice,
         name: initialName,
         images: initialImages,
+        available_warehouses: [],
       });
     } finally {
       setIsLoadingProduct(false);
@@ -185,7 +188,7 @@ export const AddToCart = ({
   };
 
   const handleAddToCart = async () => {
-     if (!dataUser) {
+    if (!dataUser) {
       setPendingAdd({ id: productId, quantity });
       setIsAuthSheetOpen(true);
       return;
@@ -262,6 +265,7 @@ export const AddToCart = ({
   const price = productData?.price || initialPrice;
   const name = productData?.name || initialName;
   const totalPrice = price * quantity;
+  const warehouseId = productData?.available_warehouses?.[0]?.warehouse_id;
 
   const isLoading = isLoadingProduct || addToCartMutation.isPending;
 
@@ -369,6 +373,7 @@ export const AddToCart = ({
           unitName={unitName}
           isOpen={isQuickBuyOpen}
           onClose={() => setIsQuickBuyOpen(false)}
+          warehouseId={warehouseId}
         />
       )}
       <PhoneAuthSheet
