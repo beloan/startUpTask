@@ -5,7 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState, useEffect } from "react";
+import { Suspense, useMemo, useState, useEffect, useRef } from "react";
 import React from "react";
 
 import { fetchProducts } from "@/entities/product/api";
@@ -70,6 +70,25 @@ const sortOptions: SortOption[] = [
   },
 ];
 
+// Defined outside component to prevent recreation on every render
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.3 },
+  },
+};
+
+const headingVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
+};
+
+const toolbarVariants = {
+  hidden: { opacity: 0, x: 20 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
+};
+
 function ProductsContent() {
   const { currentSortType, applySort, currentParams } = useProductFilters();
   const [totalCount, setTotalCount] = useState<number | null>(null);
@@ -77,20 +96,17 @@ function ProductsContent() {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") || "";
   const sellerId = searchParams.get("seller_id");
-  const address = searchParams.get("address");
-  const city = searchParams.get("city");
-  const lat = searchParams.get("lat");
-  const lon = searchParams.get("lon");
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
+  const isMounted = useRef(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      isMounted.current = true;
+      setIsReady(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const finalParams = useMemo(() => {
     const params = { ...currentParams };
@@ -106,11 +122,11 @@ function ProductsContent() {
   const selectedSort =
     sortOptions.find((opt) => opt.value === currentSortType) || sortOptions[0];
 
-  const listParams: Partial<GetProductsDto> = {
+  const listParams: Partial<GetProductsDto> = useMemo(() => ({
     ...finalParams,
     sort_by: selectedSort.sort_by,
     sort_order: selectedSort.sort_order,
-  };
+  }), [finalParams, selectedSort.sort_by, selectedSort.sort_order]);
 
   const {
     data,
@@ -134,6 +150,9 @@ function ProductsContent() {
       return undefined;
     },
     initialPageParam: 1,
+    // Keep cached data while refetching to prevent flash of empty state
+    placeholderData: (prev) => prev,
+    staleTime: 2 * 60 * 1000, // 2 minutes — reduces unnecessary refetches on back-navigation
   });
 
   useEffect(() => {
@@ -156,9 +175,10 @@ function ProductsContent() {
     return Array.from(sellerSet.entries()).map(([id, name]) => ({ id, name }));
   }, [allProducts]);
 
-  const sellerOptions = useMemo(() => {
-    return sellers.map((s: any) => ({ value: s.id, label: s.name }));
-  }, [sellers]);
+  const sellerOptions = useMemo(
+    () => sellers.map((s: any) => ({ value: s.id, label: s.name })),
+    [sellers]
+  );
 
   const sellerMap = useMemo(() => {
     const map: Record<number, string> = {};
@@ -169,16 +189,12 @@ function ProductsContent() {
   }, [sellers]);
 
   const categoryName = useMemo(() => {
-    if (currentParams.category) {
-      return currentParams.category;
-    }
+    if (currentParams.category) return currentParams.category;
     if (currentParams.global_category_id && categoryTreeData?.result) {
       const findCategoryById = (categories: any[], id: number): any | null => {
         for (const category of categories) {
-          if (category.id === id) {
-            return category;
-          }
-          if (category.children && category.children.length > 0) {
+          if (category.id === id) return category;
+          if (category.children?.length) {
             const found = findCategoryById(category.children, id);
             if (found) return found;
           }
@@ -192,74 +208,50 @@ function ProductsContent() {
       return category?.name || null;
     }
     return null;
-  }, [
-    currentParams.category,
-    currentParams.global_category_id,
-    categoryTreeData,
-  ]);
+  }, [currentParams.category, currentParams.global_category_id, categoryTreeData]);
 
   const { minPrice, maxPrice, categories, manufacturers } = useMemo(() => {
     const productsWithPrice = allProducts.filter((p: Product) => p.price != null);
-
-    const min =
-      productsWithPrice.length > 0
-        ? Math.min(...productsWithPrice.map((p: Product) => p.price))
-        : 0;
-
-    const max =
-      productsWithPrice.length > 0
-        ? Math.max(...productsWithPrice.map((p: Product) => p.price))
-        : 10000;
-
+    const min = productsWithPrice.length > 0
+      ? Math.min(...productsWithPrice.map((p: Product) => p.price))
+      : 0;
+    const max = productsWithPrice.length > 0
+      ? Math.max(...productsWithPrice.map((p: Product) => p.price))
+      : 10000;
     const uniqueCategories = Array.from(
-      new Set(
-        allProducts
-          .filter((p: Product) => p.category_name)
-          .map((p: Product) => p.category_name as string)
-          .filter(Boolean),
-      ),
+      new Set(allProducts.filter((p: Product) => p.category_name).map((p: Product) => p.category_name as string).filter(Boolean))
     );
-
     const uniqueManufacturers = Array.from(
-      new Set(
-        allProducts
-          .filter((p: Product) => p.manufacturer_name)
-          .map((p: Product) => p.manufacturer_name as string)
-          .filter(Boolean),
-      ),
+      new Set(allProducts.filter((p: Product) => p.manufacturer_name).map((p: Product) => p.manufacturer_name as string).filter(Boolean))
     );
-
-    return {
-      minPrice: min,
-      maxPrice: max,
-      categories: uniqueCategories as string[],
-      manufacturers: uniqueManufacturers as string[],
-    };
+    return { minPrice: min, maxPrice: max, categories: uniqueCategories as string[], manufacturers: uniqueManufacturers as string[] };
   }, [allProducts]);
 
   return (
     <div className="py-2 pb-12">
       <div className="container">
-        <BreadcrumbsDemo
-          isProduct={false}
-          categoryName={categoryName || null}
-        />
+        <BreadcrumbsDemo isProduct={false} categoryName={categoryName || null} />
         <div className="flex flex-col gap-2 md:flex-row md:justify-between">
+          {/*
+           * FIX: Replace whileInView with animate + initial={false} after mount.
+           * whileInView relies on IntersectionObserver which can miss the trigger
+           * when the element is ALREADY in viewport at paint time (e.g. back-navigation).
+           * Using animate with a ready-flag guarantees the transition always completes.
+           */}
           <motion.h1
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            variants={headingVariants}
+            initial="hidden"
+            animate={isReady ? "visible" : "hidden"}
             className="text-lg font-medium tracking-tight"
           >
             {q ? `Результаты поиска: "${q}" ` : categoryName || "Категория"}(
             {totalCount !== null ? totalCount : "..."})
           </motion.h1>
+
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            variants={toolbarVariants}
+            initial="hidden"
+            animate={isReady ? "visible" : "hidden"}
             className="flex gap-2 pb-4"
           >
             <Select value={currentSortType} onValueChange={applySort}>
@@ -297,7 +289,9 @@ function ProductsContent() {
             </Dialog>
           </motion.div>
         </div>
+
         <ActiveFilters onFiltersChange={() => {}} sellerMap={sellerMap} />
+
         <div className="flex pt-4 relative">
           <div className="hidden md:block w-80">
             <Filter
@@ -309,18 +303,24 @@ function ProductsContent() {
               sellerOptions={sellerOptions}
             />
           </div>
+
+          {/*
+           * FIX: Replaced whileInView (broken on back-navigation) with animate.
+           * The container was starting at opacity:0 (initial="hidden") and the
+           * IntersectionObserver sometimes didn't fire when the element was already
+           * fully in the viewport at paint-time, leaving cards invisible until scroll.
+           */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
+            animate={isReady ? "visible" : "hidden"}
             className="flex-1"
           >
             <ProductsList
               products={allProducts}
               isLoading={isLoading}
               isFetchingNextPage={isFetchingNextPage}
-              hasNextPage={hasNextPage}
+              hasNextPage={hasNextPage ?? false}
               fetchNextPage={fetchNextPage}
               error={error}
               totalCount={totalCount}
