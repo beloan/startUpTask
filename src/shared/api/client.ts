@@ -21,25 +21,17 @@ export const apiClient = axios.create({
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
-    'Accept': 'application/json',
+    Accept: "application/json",
   },
 });
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  if (config.url && config.url.startsWith('http://')) {
-    config.url = config.url.replace('http://', 'https://');
+  if (config.url?.startsWith("http://")) {
+    config.url = config.url.replace("http://", "https://");
   }
-  
-  if (config.baseURL && config.baseURL.startsWith('http://')) {
-    config.baseURL = config.baseURL.replace('http://', 'https://');
+  if (config.baseURL?.startsWith("http://")) {
+    config.baseURL = config.baseURL.replace("http://", "https://");
   }
-  
-  const phone = getAuthPhone();
-
-  if (!phone) {
-    return config;
-  }
-
   return config;
 });
 
@@ -48,9 +40,11 @@ apiClient.interceptors.response.use(
   (error) => {
     const errorData = error.response?.data;
     const errorMessage = error.message || "Unknown error";
-    
-    // Логируем только критические ошибки (игнорируем SSL/certificate ошибки)
-    if (!errorMessage.includes('certificate') && !errorMessage.includes('SSL') && !errorMessage.includes('TLS')) {
+    if (
+      !errorMessage.includes("certificate") &&
+      !errorMessage.includes("SSL") &&
+      !errorMessage.includes("TLS")
+    ) {
       if (errorData && Object.keys(errorData).length > 0) {
         console.error("API Error:", errorData);
       } else if (errorMessage) {
@@ -58,16 +52,24 @@ apiClient.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  },
+  }
 );
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      staleTime: 5 * 60 * 1000,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 10000),
+
+      staleTime: 10 * 60 * 1000,
+
+      gcTime: 30 * 60 * 1000,
+
       refetchOnWindowFocus: false,
+
+      refetchOnMount: false,
+
+      refetchOnReconnect: true,
     },
     mutations: {
       retry: 1,

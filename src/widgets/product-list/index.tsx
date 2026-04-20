@@ -18,6 +18,8 @@ interface ProductsListProps {
   totalCount: number | null;
 }
 
+const PRIORITY_COUNT = 10;
+
 const ProductsList: React.FC<ProductsListProps> = ({
   products,
   isLoading,
@@ -80,9 +82,12 @@ const ProductsList: React.FC<ProductsListProps> = ({
   return (
     <div className="flex-1">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        {products.map((product) => (
+        {products.map((product, index) => (
           <div key={product.id}>
-            <ProductCard {...product} />
+            <ProductCard
+              {...product}
+              priority={index < PRIORITY_COUNT}
+            />
           </div>
         ))}
       </div>

@@ -3,7 +3,7 @@
 import { ShoppingCart, Star, Plus, Minus, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import { FavoriteButton } from "@/shared/ui/kit/favorite-button";
 import { useAddToCart, useRemoveFromCart, useCart } from "@/entities/cart/model/hooks";
@@ -12,7 +12,6 @@ import { Product } from "../model/types";
 import { useTrackEvent } from "@/entities/statistics/model/hooks";
 import { Button } from "@/shared/ui/kit/button";
 import { useDataUser } from "@/shared/hooks/useDataUser";
-import { toast } from "sonner";
 import { getLocationParamsString } from "@/shared/lib/city-utils";
 import { PhoneAuthSheet } from "@/feature/auth/phone-auth-sheet";
 
@@ -20,6 +19,7 @@ type ProductCardProps = Product & {
   position?: number;
   page?: number;
   isRecommendation?: boolean;
+  priority?: boolean;
 };
 
 export const ProductCard = ({
@@ -34,6 +34,7 @@ export const ProductCard = ({
   position,
   page,
   isRecommendation = false,
+  priority = false,
   ...product
 }: ProductCardProps) => {
   const { data: cartData } = useCart();
@@ -50,7 +51,6 @@ export const ProductCard = ({
   const [isAuthSheetOpen, setIsAuthSheetOpen] = useState(false);
   const [pendingAdd, setPendingAdd] = useState<{ id: number; quantity: number } | null>(null);
 
-
   useEffect(() => {
     if (cartData?.goods) {
       const cartItem = cartData.goods.find(item => item.nomenclature_id === id);
@@ -59,6 +59,14 @@ export const ProductCard = ({
   }, [cartData, id]);
 
   useEffect(() => {
+    if (priority) {
+      if (!hasTrackedView.current) {
+        hasTrackedView.current = true;
+        trackView(id, position, page);
+      }
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasTrackedView.current) {
@@ -78,32 +86,26 @@ export const ProductCard = ({
         observer.unobserve(cardRef.current);
       }
     };
-  }, [id, position, page, trackView]);
+  }, [id, position, page, trackView, priority]);
 
-    useEffect(() => {
-      if (dataUser && pendingAdd) {
-        const { id, quantity } = pendingAdd;
-        addToCartMutation.mutate({ nomenclature_id: id, quantity });
-        setPendingAdd(null);
-      }
-    }, [dataUser, pendingAdd, addToCartMutation]);
+  useEffect(() => {
+    if (dataUser && pendingAdd) {
+      const { id, quantity } = pendingAdd;
+      addToCartMutation.mutate({ nomenclature_id: id, quantity });
+      setPendingAdd(null);
+    }
+  }, [dataUser, pendingAdd, addToCartMutation]);
 
-  const updateServerQuantity = async (targetQuantity: number) => {
+  const updateServerQuantity = useCallback(async (targetQuantity: number) => {
     if (!id) return;
     setIsUpdating(true);
-   
     try {
       const currentQuantity = cartData?.goods?.find(item => item.nomenclature_id === id)?.quantity || 0;
       const difference = targetQuantity - currentQuantity;
       if (difference > 0) {
-        await addToCartMutation.mutateAsync({
-          nomenclature_id: id,
-          quantity: difference,
-        });
+        await addToCartMutation.mutateAsync({ nomenclature_id: id, quantity: difference });
       } else if (difference < 0) {
-        await removeFromCartMutation.mutateAsync({
-          nomenclature_id: id,
-        });
+        await removeFromCartMutation.mutateAsync({ nomenclature_id: id });
       }
     } catch (error) {
       console.error("Ошибка обновления корзины:", error);
@@ -113,80 +115,59 @@ export const ProductCard = ({
       setIsUpdating(false);
       setShouldUpdateServer(false);
     }
-  };
+  }, [id, cartData, addToCartMutation, removeFromCartMutation]);
+
+  const scheduleUpdate = useCallback((qty: number) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => updateServerQuantity(qty), 800);
+  }, [updateServerQuantity]);
 
   const handleIncrease = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-   
     if (!id) return;
-   
-    const newQuantity = localQuantity + 1;
-    setLocalQuantity(newQuantity);
+    const newQty = localQuantity + 1;
+    setLocalQuantity(newQty);
     setShouldUpdateServer(true);
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-   
-    timerRef.current = setTimeout(() => {
-      updateServerQuantity(newQuantity);
-    }, 1000);
+    scheduleUpdate(newQty);
   };
 
   const handleDecrease = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-   
     if (!id || localQuantity <= 0) return;
-   
-    const newQuantity = localQuantity - 1;
-    setLocalQuantity(newQuantity);
+    const newQty = localQuantity - 1;
+    setLocalQuantity(newQty);
     setShouldUpdateServer(true);
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    timerRef.current = setTimeout(() => {
-      updateServerQuantity(newQuantity);
-    }, 1000);
+    scheduleUpdate(newQty);
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (!dataUser) {
       setPendingAdd({ id, quantity: 1 });
       setIsAuthSheetOpen(true);
       return;
     }
-   
     if (!id) return;
-   
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-   
-    timerRef.current = setTimeout(() => {
-      updateServerQuantity(1);
-    }, 1000);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => updateServerQuantity(1), 800);
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = () => {
     trackClick(id, position, page);
   };
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
   const displayPrice = price != null ? `${price.toLocaleString('ru-RU')}₽` : "Цена не указана";
   const displayRating = rating != null && rating > 0;
   const displayTotalSold = total_sold != null && total_sold > 0;
-  const displaySeller = seller_name != null && seller_name.trim() !== "";
   const transformedImageUrl = images?.[0] ? transformImageUrl(images[0]) : null;
 
   const locationParams = getLocationParamsString();
@@ -198,13 +179,10 @@ export const ProductCard = ({
         href={productUrl}
         className="group relative overflow-hidden h-72 rounded-lg border border-gray-100 shadow-sm hover:ring-2 ring-gray-200 flex items-end transition-all duration-300 hover:scale-[1.02]"
         onClick={handleCardClick}
+        prefetch={priority} // PERF: prefetch product page for above-fold cards
       >
         <div className="absolute top-3 left-3 z-30">
-          <FavoriteButton
-            productId={id}
-            size="md"
-            isInitiallyActive={false}
-          />
+          <FavoriteButton productId={id} size="md" isInitiallyActive={false} />
         </div>
         <div className="absolute inset-0">
           {transformedImageUrl ? (
@@ -214,6 +192,8 @@ export const ProductCard = ({
               fill
               className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              priority={priority}
+              placeholder="empty"
               onError={(e) => {
                 if (images?.[0] && images[0] !== transformedImageUrl) {
                   (e.target as HTMLImageElement).src = images[0];
@@ -230,21 +210,18 @@ export const ProductCard = ({
           )}
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-       
+
         <div className="flex flex-col p-3 relative z-20 mt-auto flex-1 w-full">
-          <div className="">
-            <div>
-              <p className="tracking-tight inline font-medium leading-4 text-white line-clamp-2">
-                {name}
-              </p>
-              {displayTotalSold && (
-                <span className="text-xs text-gray-300 ml-1 inline-block">
-                  • {total_sold} прод.
-                </span>
-              )}
-             
-              <span className="text-gray-300 text-sm block">{category_name}</span>
-            </div>
+          <div>
+            <p className="tracking-tight inline font-medium leading-4 text-white line-clamp-2">
+              {name}
+            </p>
+            {displayTotalSold && (
+              <span className="text-xs text-gray-300 ml-1 inline-block">
+                • {total_sold} прод.
+              </span>
+            )}
+            <span className="text-gray-300 text-sm block">{category_name}</span>
             <div className="flex items-center justify-between">
               <span className="font-medium text-lg text-white">{displayPrice}</span>
               {displayRating && (
@@ -254,7 +231,7 @@ export const ProductCard = ({
                 </span>
               )}
             </div>
-           
+
             <div className="flex items-center justify-between pt-2">
               {localQuantity > 0 ? (
                 <div className="flex items-center justify-between w-full bg-white/90 rounded-md overflow-hidden h-9">
@@ -266,7 +243,6 @@ export const ProductCard = ({
                   >
                     <Minus width={16} height={16} />
                   </Button>
-                 
                   <div className="flex items-center justify-center min-w-[60px]">
                     {isUpdating ? (
                       <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
@@ -277,7 +253,6 @@ export const ProductCard = ({
                       </span>
                     )}
                   </div>
-                 
                   <Button
                     onClick={handleIncrease}
                     className="flex-1 bg-transparent hover:bg-gray-100 text-gray-800 border-0 rounded-none cursor-pointer transition-colors duration-200"
@@ -298,21 +273,21 @@ export const ProductCard = ({
                   ) : (
                     <ShoppingCart width={16} height={16} />
                   )}
-                  <span className="ml-2">
-                    {isUpdating ? "" : "В корзину"}
-                  </span>
+                  <span className="ml-2">{isUpdating ? "" : "В корзину"}</span>
                 </Button>
               )}
             </div>
           </div>
         </div>
+
         {shouldUpdateServer && !isUpdating && (
           <div className="absolute bottom-1 right-1">
             <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
           </div>
         )}
       </Link>
-       <PhoneAuthSheet
+
+      <PhoneAuthSheet
         isOpen={isAuthSheetOpen}
         onClose={() => setIsAuthSheetOpen(false)}
         onSuccess={() => {}}
