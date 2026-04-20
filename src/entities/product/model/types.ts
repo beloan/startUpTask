@@ -30,6 +30,7 @@ export type Product = {
   videos?: ProductVideo[];
   barcodes?: string[];
   type?: string;
+  seller_id?: number;
   distance?: number;
   listing_pos?: number;
   listing_page?: number;
