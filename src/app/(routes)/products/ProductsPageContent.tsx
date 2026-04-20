@@ -1,11 +1,11 @@
 // app/(routes)/products/ProductsPageContent.tsx
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import React from "react";
 
 import { fetchProducts } from "@/entities/product/api";
@@ -103,29 +103,6 @@ function ProductsContent() {
     return params;
   }, [currentParams, sellerId, q]);
 
-  const { data: productsData, isLoading } = useQuery({
-    queryKey: ["products", finalParams],
-    queryFn: () =>
-      fetchProducts({
-        ...finalParams,
-        page: 1,
-        size: 100,
-      }),
-  });
-  const firstPage = (productsData as any)?.pages?.[0] || productsData;
-  const products = firstPage?.result || [];
-  const sellers = firstPage?.sellers || [];
-
-  const sellerOptions = useMemo(() => {
-    return sellers.map((s: any) => ({ value: s.id, label: s.name }));
-  }, [sellers]);
-  const sellerMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    sellers.forEach((s: any) => {
-      map[s.id] = s.name;
-    });
-    return map;
-  }, [sellers]);
   const selectedSort =
     sortOptions.find((opt) => opt.value === currentSortType) || sortOptions[0];
 
@@ -134,6 +111,62 @@ function ProductsContent() {
     sort_by: selectedSort.sort_by,
     sort_order: selectedSort.sort_order,
   };
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
+  } = useInfiniteQuery({
+    queryKey: ["products-infinite", listParams],
+    queryFn: ({ pageParam = 1 }) =>
+      fetchProducts({
+        ...listParams,
+        page: pageParam,
+        size: 20,
+      }),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page * lastPage.size < lastPage.count) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+  });
+
+  useEffect(() => {
+    if (data?.pages?.[0]?.count !== undefined) {
+      setTotalCount(data.pages[0].count);
+    }
+  }, [data]);
+
+  const allProducts = useMemo(() => {
+    return data?.pages.flatMap((page) => page.result) ?? [];
+  }, [data]);
+
+  const sellers = useMemo(() => {
+    const sellerSet = new Map();
+    allProducts.forEach((p: Product) => {
+      if (p.seller_id && p.seller_name) {
+        sellerSet.set(p.seller_id, p.seller_name);
+      }
+    });
+    return Array.from(sellerSet.entries()).map(([id, name]) => ({ id, name }));
+  }, [allProducts]);
+
+  const sellerOptions = useMemo(() => {
+    return sellers.map((s: any) => ({ value: s.id, label: s.name }));
+  }, [sellers]);
+
+  const sellerMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    sellers.forEach((s: any) => {
+      map[s.id] = s.name;
+    });
+    return map;
+  }, [sellers]);
 
   const categoryName = useMemo(() => {
     if (currentParams.category) {
@@ -166,7 +199,7 @@ function ProductsContent() {
   ]);
 
   const { minPrice, maxPrice, categories, manufacturers } = useMemo(() => {
-    const productsWithPrice = products.filter((p: Product) => p.price != null);
+    const productsWithPrice = allProducts.filter((p: Product) => p.price != null);
 
     const min =
       productsWithPrice.length > 0
@@ -180,7 +213,7 @@ function ProductsContent() {
 
     const uniqueCategories = Array.from(
       new Set(
-        products
+        allProducts
           .filter((p: Product) => p.category_name)
           .map((p: Product) => p.category_name as string)
           .filter(Boolean),
@@ -189,7 +222,7 @@ function ProductsContent() {
 
     const uniqueManufacturers = Array.from(
       new Set(
-        products
+        allProducts
           .filter((p: Product) => p.manufacturer_name)
           .map((p: Product) => p.manufacturer_name as string)
           .filter(Boolean),
@@ -202,7 +235,7 @@ function ProductsContent() {
       categories: uniqueCategories as string[],
       manufacturers: uniqueManufacturers as string[],
     };
-  }, [products]);
+  }, [allProducts]);
 
   return (
     <div className="py-2 pb-12">
@@ -253,7 +286,7 @@ function ProductsContent() {
               <DialogContent className="p-0">
                 <DialogTitle></DialogTitle>
                 <Filter
-                  products={products}
+                  products={allProducts}
                   initialMinPrice={minPrice}
                   initialMaxPrice={maxPrice}
                   categories={categories}
@@ -268,7 +301,7 @@ function ProductsContent() {
         <div className="flex pt-4 relative">
           <div className="hidden md:block w-80">
             <Filter
-              products={products}
+              products={allProducts}
               initialMinPrice={minPrice}
               initialMaxPrice={maxPrice}
               categories={categories}
@@ -284,8 +317,13 @@ function ProductsContent() {
             className="flex-1"
           >
             <ProductsList
-              params={listParams}
-              onTotalCountChange={setTotalCount}
+              products={allProducts}
+              isLoading={isLoading}
+              isFetchingNextPage={isFetchingNextPage}
+              hasNextPage={hasNextPage}
+              fetchNextPage={fetchNextPage}
+              error={error}
+              totalCount={totalCount}
             />
           </motion.div>
         </div>

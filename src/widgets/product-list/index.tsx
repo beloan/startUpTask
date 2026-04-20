@@ -1,57 +1,36 @@
+// widgets/product-list/ui/ProductsList.tsx
 "use client";
 
 import React, { useEffect } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 
 import { ProductCard } from "@/entities/product/ui";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
-import { fetchProducts } from "@/entities/product/api";
-import { GetProductsDto, Product } from "@/entities/product/model/types";
+import { Product } from "@/entities/product/model/types";
 
 interface ProductsListProps {
-  params: Partial<GetProductsDto>;
-  onTotalCountChange?: (count: number) => void;
+  products: Product[];
+  isLoading: boolean;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+  fetchNextPage: () => void;
+  error: Error | null;
+  totalCount: number | null;
 }
 
 const ProductsList: React.FC<ProductsListProps> = ({
-  params,
-  onTotalCountChange,
+  products,
+  isLoading,
+  isFetchingNextPage,
+  hasNextPage,
+  fetchNextPage,
+  error,
+  totalCount,
 }) => {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    error,
-  } = useInfiniteQuery({
-    queryKey: ["products", params],
-    queryFn: ({ pageParam = 1 }) =>
-      fetchProducts({
-        ...params,
-        page: pageParam as number,
-        size: params.size || 20,
-      }),
-    getNextPageParam: (lastPage) => {
-      if (lastPage.page * lastPage.size < lastPage.count) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
-    initialPageParam: 1,
-  });
-
   const { ref, inView } = useInView({
     threshold: 0,
     rootMargin: "1000px",
   });
-
-  useEffect(() => {
-    if (data?.pages?.[0]?.count !== undefined && onTotalCountChange) {
-      onTotalCountChange(data.pages[0].count);
-    }
-  }, [data, onTotalCountChange]);
 
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
@@ -87,8 +66,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
     );
   }
 
-  const totalCount = data?.pages?.[0]?.count || 0;
-
   if (totalCount === 0) {
     return (
       <div className="flex-1 text-center py-12">
@@ -103,14 +80,10 @@ const ProductsList: React.FC<ProductsListProps> = ({
   return (
     <div className="flex-1">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        {data?.pages.map((page) => (
-          <React.Fragment key={page.page}>
-            {page?.result?.map((product: Product) => (
-              <div key={product.id}>
-                <ProductCard {...product} />
-              </div>
-            ))}
-          </React.Fragment>
+        {products.map((product) => (
+          <div key={product.id}>
+            <ProductCard {...product} />
+          </div>
         ))}
       </div>
 
