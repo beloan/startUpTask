@@ -19,6 +19,7 @@ export const useCreateViewEvent = () => {
   const queryClient = useQueryClient();
   const { utmParams } = useUtmParams();
   const city = getCityFromStorage();
+  const normalizedPhone = contragentPhone?.replace(/\D/g, "");
 
   return useMutation({
     mutationFn: (data: {
@@ -27,13 +28,17 @@ export const useCreateViewEvent = () => {
       listing_pos?: number;
       listing_page?: number;
       event: 'view' | 'click';
-    }) => 
-      statsApi.createViewEvent({
+    }) => {
+      if (!normalizedPhone) {
+        return Promise.resolve(null);
+      }
+      return statsApi.createViewEvent({
         ...data,
-        contragent_phone: contragentPhone,
+        contragent_phone: normalizedPhone,
         city,
         ...utmParams,
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: statisticsKeys.root });
     },

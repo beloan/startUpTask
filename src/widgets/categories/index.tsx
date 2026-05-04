@@ -13,6 +13,7 @@ import { Skeleton } from "@/shared/ui/kit/skeleton";
 const Categories = () => {
   const { data: categoriesData, isLoading } = useCategoryTree(true);
   const searchParams = useSearchParams();
+  const [showAllCategories, setShowAllCategories] = React.useState(false);
 
   const softGradients = [
     "linear-gradient(135deg, #f9d8d6 0%, #f8e1e7 100%)",
@@ -53,21 +54,47 @@ const Categories = () => {
     );
   }
 
+  const hasProductsInTree = (cat: any): boolean => {
+    if (cat.has_products === true) return true;
+    if (cat.children && cat.children.length > 0) {
+      return cat.children.some((child: any) => {
+        if (!child.is_active) return false;
+        return hasProductsInTree(child);
+      });
+    }
+    return false;
+  };
+
+  const findCategoryByName = (categories: any[], targetName: string): any | null => {
+    for (const category of categories) {
+      if (String(category.name).toLowerCase() === targetName.toLowerCase()) {
+        return category;
+      }
+      if (category.children?.length) {
+        const found = findCategoryByName(category.children, targetName);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const collectSubcategories = (category: any): any[] => {
+    if (!category?.children?.length) return [];
+    const collected: any[] = [];
+    category.children.forEach((child: any) => {
+      if (child.is_active && hasProductsInTree(child)) {
+        collected.push(child);
+      }
+      collected.push(...collectSubcategories(child));
+    });
+    return collected;
+  };
+
   const mainCategories = categoriesData?.result?.filter(
     category => {
       if (!category.is_active || category.parent_id) return false;
       if (category.has_products === true) return true;
       if (!category.children || category.children.length === 0) return false;
-      const hasProductsInTree = (cat: typeof category): boolean => {
-        if (cat.has_products === true) return true;
-        if (cat.children && cat.children.length > 0) {
-          return cat.children.some(child => {
-            if (!child.is_active) return false;
-            return hasProductsInTree(child);
-          });
-        }
-        return false;
-      };
       const hasActiveChildrenWithProducts = category.children.some(child => {
         if (!child.is_active) return false;
         return hasProductsInTree(child);
@@ -76,7 +103,54 @@ const Categories = () => {
     }
   ) || [];
 
-  const displayedCategories = mainCategories.slice(0, 7);
+  const homeAndGardenCategory = findCategoryByName(categoriesData?.result || [], "Для дома и дачи");
+  const homeAndGardenSubcategories = homeAndGardenCategory
+    ? collectSubcategories(homeAndGardenCategory)
+    : [];
+  const displayedCategories = (homeAndGardenSubcategories.length > 0
+    ? homeAndGardenSubcategories
+    : mainCategories).slice(0, 7);
+
+  const renderCategoryTree = (categories: any[], level = 0): React.ReactNode => {
+    if (!categories.length) return null;
+    
+    // Limit display at level 0 (top-level categories)
+    const limitedCategories = level === 0 && !showAllCategories ? categories.slice(0, 5) : categories;
+
+    return (
+      <ul className={level === 0 ? "grid gap-3 md:grid-cols-2 xl:grid-cols-3" : "mt-3 space-y-2 pl-4 border-l border-gray-200"}>
+        {limitedCategories.map((category) => {
+          const categoryUrl = new URLSearchParams();
+          categoryUrl.set('global_category_id', category.id.toString());
+          const address = searchParams.get('address');
+          const sellerId = searchParams.get('seller_id');
+          if (address) categoryUrl.set('address', address);
+          if (sellerId) categoryUrl.set('seller_id', sellerId);
+
+          const activeChildren = category.children?.filter((child: any) => child.is_active && hasProductsInTree(child)) || [];
+
+          return (
+            <li key={category.id} className="rounded-xl border border-gray-100 bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <Link
+                  href={`/products?${categoryUrl.toString()}`}
+                  className="font-medium tracking-tight text-gray-900 hover:text-blue-600"
+                >
+                  {category.name}
+                </Link>
+                <span className="text-xs text-gray-500">{activeChildren.length}</span>
+              </div>
+              {activeChildren.length > 0 && (
+                <div className="mt-3">
+                  {renderCategoryTree(activeChildren, level + 1)}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -131,10 +205,8 @@ const Categories = () => {
             const categoryUrl = new URLSearchParams();
             categoryUrl.set('global_category_id', category.id.toString());
             const address = searchParams.get('address');
-            const city = searchParams.get('city');
             const sellerId = searchParams.get('seller_id');
             if (address) categoryUrl.set('address', address);
-            else if (city) categoryUrl.set('city', city);
             if (sellerId) categoryUrl.set('seller_id', sellerId);
             
             return (
@@ -171,6 +243,47 @@ const Categories = () => {
             );
           })}
         </motion.div>
+
+        <div className="mt-8 rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 md:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-medium tracking-tight text-gray-900">
+                Все категории и подкатегории
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Семантический список для удобной навигации и индексации.
+              </p>
+            </div>
+            <Link href="/categories" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+              Открыть все категории
+            </Link>
+          </div>
+          <div className="mt-4">
+            {renderCategoryTree(mainCategories)}
+            {mainCategories.length > 5 && !showAllCategories && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  onClick={() => setShowAllCategories(true)}
+                  variant="outline"
+                  className="hover:ring-gray-200"
+                >
+                  Показать ещё ({mainCategories.length - 5} скрыто)
+                </Button>
+              </div>
+            )}
+            {showAllCategories && mainCategories.length > 5 && (
+              <div className="mt-2 flex justify-center">
+                <Button
+                  onClick={() => setShowAllCategories(false)}
+                  variant="outline"
+                  className="hover:ring-gray-200"
+                >
+                  Свернуть
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );

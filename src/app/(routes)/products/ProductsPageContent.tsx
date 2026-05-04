@@ -3,7 +3,7 @@
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { SlidersHorizontal } from "lucide-react";
+import { List, Map as MapIcon, SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState, useEffect, useRef } from "react";
 import React from "react";
@@ -20,6 +20,7 @@ import { useProductFilters } from "@/feature/products-filter/hooks/useProductFil
 import ActiveFilters from "@/feature/products-filter/ui/active-filters";
 
 import { Filter } from "@/widgets/filter";
+import { ProductsMap } from "@/widgets/products-map";
 import ProductsList from "@/widgets/product-list";
 
 import { useCategoryTree } from "@/shared/hooks/useCategory";
@@ -28,6 +29,8 @@ import { Button } from "@/shared/ui/kit/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/shared/ui/kit/dialog";
@@ -90,12 +93,15 @@ const toolbarVariants = {
 };
 
 function ProductsContent() {
-  const { currentSortType, applySort, currentParams } = useProductFilters();
+  const { currentSortType, applySort, currentParams, updateUrlWithFilters } = useProductFilters();
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const { data: categoryTreeData } = useCategoryTree(true);
   const searchParams = useSearchParams();
   const q = searchParams.get("q") || "";
   const sellerId = searchParams.get("seller_id");
+  const lat = searchParams.get("lat");
+  const lon = searchParams.get("lon");
+  const viewMode = searchParams.get("view") === "map" ? "map" : "list";
 
   const isMounted = useRef(false);
   const [isReady, setIsReady] = useState(false);
@@ -121,6 +127,8 @@ function ProductsContent() {
 
   const selectedSort =
     sortOptions.find((opt) => opt.value === currentSortType) || sortOptions[0];
+
+  const radiusValue = String(currentParams.radius_km ?? 20);
 
   const listParams: Partial<GetProductsDto> = useMemo(() => ({
     ...finalParams,
@@ -268,6 +276,30 @@ function ProductsContent() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+            <Select
+              value={radiusValue}
+              onValueChange={(value) => {
+                updateUrlWithFilters({
+                  radius_km: Number(value),
+                  apply_radius_filter: true,
+                  ...(lat && { lat }),
+                  ...(lon && { lon }),
+                });
+              }}
+            >
+              <SelectTrigger className="w-[170px]">
+                <SelectValue placeholder="Радиус" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="3">Радиус: 3 км</SelectItem>
+                  <SelectItem value="5">Радиус: 5 км</SelectItem>
+                  <SelectItem value="10">Радиус: 10 км</SelectItem>
+                  <SelectItem value="20">Радиус: 20 км</SelectItem>
+                  <SelectItem value="50">Радиус: 50 км</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             <Dialog>
               <DialogTrigger asChild className="md:hidden">
                 <Button variant="outline" className="font-normal">
@@ -276,7 +308,12 @@ function ProductsContent() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="p-0">
-                <DialogTitle></DialogTitle>
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Фильтры каталога</DialogTitle>
+                  <DialogDescription>
+                    Настройка параметров фильтрации товаров.
+                  </DialogDescription>
+                </DialogHeader>
                 <Filter
                   products={allProducts}
                   initialMinPrice={minPrice}
@@ -287,6 +324,18 @@ function ProductsContent() {
                 />
               </DialogContent>
             </Dialog>
+            <Button
+              variant="outline"
+              onClick={() =>
+                updateUrlWithFilters({
+                  view: viewMode === "map" ? "list" : "map",
+                } as Record<string, string>)
+              }
+              className="font-normal"
+            >
+              {viewMode === "map" ? <List className="h-4 w-4" /> : <MapIcon className="h-4 w-4" />}
+              {viewMode === "map" ? "Список" : "Карта"}
+            </Button>
           </motion.div>
         </div>
 
@@ -316,6 +365,13 @@ function ProductsContent() {
             animate={isReady ? "visible" : "hidden"}
             className="flex-1"
           >
+            {viewMode === "map" && (
+              <ProductsMap
+                products={allProducts}
+                fallbackLat={currentParams.lat}
+                fallbackLon={currentParams.lon}
+              />
+            )}
             <ProductsList
               products={allProducts}
               isLoading={isLoading}
