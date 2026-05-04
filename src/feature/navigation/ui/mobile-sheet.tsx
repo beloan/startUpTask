@@ -191,10 +191,15 @@ export const MobileSheet = () => {
         <SheetFooter className="border-t pt-4">
           <div className="w-full space-y-3">
             <div className="text-center text-sm text-gray-500">
-              <p>Есть вопросы? Звоните!</p>
-              <a href="tel:+79998887766" className="text-blue-600 font-semibold">
-                +7 (999) 888-77-66
+              <p>Поддержка</p>
+              <a href="tel:+79377799906" className="text-blue-600 font-semibold">
+                +7 937 779-99-06
               </a>
+              <p className="mt-1">
+                <a href="mailto:newgis@yandex.ru" className="text-blue-600 hover:underline">
+                  newgis@yandex.ru
+                </a>
+              </p>
             </div>
           </div>
         </SheetFooter>

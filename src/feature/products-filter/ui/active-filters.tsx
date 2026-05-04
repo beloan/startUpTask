@@ -123,6 +123,49 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange, sellerMa
     });
   }
 
+  if (currentParams.section) {
+    const sectionLabel = currentParams.section === "realty" ? "Недвижимость" : currentParams.section;
+    activeFilters.push({
+      key: "section",
+      value: currentParams.section,
+      label: `Раздел: ${sectionLabel}`
+    });
+  }
+
+  if (currentParams.realty_type) {
+    const realtyTypeMap: Record<string, string> = {
+      apartment: "Квартира",
+      house: "Дом",
+      commercial: "Коммерческая",
+      land: "Участок",
+    };
+    activeFilters.push({
+      key: "realty_type",
+      value: currentParams.realty_type,
+      label: `Тип: ${realtyTypeMap[currentParams.realty_type] || currentParams.realty_type}`
+    });
+  }
+
+  if (currentParams.deal_type) {
+    const dealTypeMap: Record<string, string> = {
+      sale: "Продажа",
+      rent: "Аренда",
+    };
+    activeFilters.push({
+      key: "deal_type",
+      value: currentParams.deal_type,
+      label: `Сделка: ${dealTypeMap[currentParams.deal_type] || currentParams.deal_type}`
+    });
+  }
+
+  if (currentParams.rooms_count !== undefined) {
+    activeFilters.push({
+      key: "rooms_count",
+      value: String(currentParams.rooms_count),
+      label: `Комнат: ${currentParams.rooms_count === 4 ? "4+" : currentParams.rooms_count}`
+    });
+  }
+
   const handleRemoveFilter = (filterKey: string, filterValue?: string) => {
     removeFilter(filterKey, filterValue);
     if (onFiltersChange) {

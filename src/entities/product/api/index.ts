@@ -1,11 +1,15 @@
 import axios from "axios";
 
 import { GetProductDto, GetProductsDto, ProductsResponse } from "../model/types";
+import { getAddressCookie } from "@/shared/lib/city-utils";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://app.tablecrm.com/api/v1/mp";
 
 const inflightRequests = new Map<string, Promise<any>>();
+const responseCache = new Map<string, { timestamp: number; data: any }>();
+const RESPONSE_CACHE_TTL_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 15_000;
 
 function makeRequestKey(url: string): string {
   return url;
@@ -13,17 +17,37 @@ function makeRequestKey(url: string): string {
 
 async function deduplicatedFetch<T>(url: string): Promise<T> {
   const key = makeRequestKey(url);
+  const now = Date.now();
+
+  const cached = responseCache.get(key);
+  if (cached && now - cached.timestamp < RESPONSE_CACHE_TTL_MS) {
+    return cached.data as T;
+  }
 
   if (inflightRequests.has(key)) {
     return inflightRequests.get(key) as Promise<T>;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   const promise = fetch(url, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
+    signal: controller.signal,
   })
-    .then((res) => res.json())
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`Products request failed with status ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      responseCache.set(key, { timestamp: now, data });
+      return data;
+    })
     .finally(() => {
+      clearTimeout(timeoutId);
       inflightRequests.delete(key);
     });
 
@@ -59,15 +83,19 @@ function resolveLocationParams(params: {
   lat?: number;
   lon?: number;
 }): { address?: string; lat?: number; lon?: number } {
-  let { address, city, lat, lon } = params;
-  let addressParam = address || city;
+  let { address, lat, lon } = params;
+  let addressParam = address;
+
+  if (typeof window !== "undefined" && !addressParam) {
+    addressParam = getAddressCookie() || undefined;
+  }
 
   if (
     typeof window !== "undefined" &&
     (!addressParam || lat == null || lon == null)
   ) {
     const urlParams = new URLSearchParams(window.location.search);
-    const hasUrlParams = urlParams.get("address") || urlParams.get("city");
+    const hasUrlParams = urlParams.get("address");
 
     if (hasUrlParams) {
       try {
@@ -75,13 +103,12 @@ function resolveLocationParams(params: {
         if (stored) {
           const parsed = JSON.parse(stored) as {
             address?: string;
-            city?: string;
             lat?: number;
             lon?: number;
             manual?: boolean;
           };
-          if (parsed.manual && (parsed.address || parsed.city)) {
-            if (!addressParam) addressParam = parsed.address || parsed.city;
+          if (parsed.manual && parsed.address) {
+            if (!addressParam) addressParam = parsed.address;
             if (lat == null && parsed.lat != null) lat = parsed.lat;
             if (lon == null && parsed.lon != null) lon = parsed.lon;
           }
@@ -117,9 +144,19 @@ export const fetchProducts = async (
       lon: params.lon,
     });
 
+    const hasCoordinates = lat != null && lon != null;
+    const radiusKm =
+      params.radius_km != null && !Number.isNaN(Number(params.radius_km))
+        ? Number(params.radius_km)
+        : 20;
+
     const requestParams: Record<string, any> = {
       page: params.page || 1,
       size: params.size || 20,
+      section: params.section,
+      realty_type: params.realty_type,
+      deal_type: params.deal_type,
+      rooms_count: params.rooms_count,
       sort_by: params.sort_by,
       sort_order: params.sort_order,
       category: params.category,
@@ -132,7 +169,9 @@ export const fetchProducts = async (
       global_category_id: params.global_category_id,
       seller_id: params.seller_id,
       name: params.name,
-      apply_radius_filter: true,
+      apply_radius_filter:
+        params.apply_radius_filter ?? hasCoordinates,
+      radius_km: hasCoordinates ? radiusKm : undefined,
     };
 
     if (addressParam) requestParams.address = addressParam;

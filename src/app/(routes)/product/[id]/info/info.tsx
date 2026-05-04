@@ -1,9 +1,9 @@
 "use client";
 import { AvatarFallback } from "@radix-ui/react-avatar";
-import { Warehouse } from "lucide-react";
+import { Warehouse, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { Product, useProduct } from "@/entities/product";
 import { ProductImages } from "@/entities/product/ui/product-images";
@@ -32,7 +32,17 @@ const ProductInfo = ({
   seller_photo,
   seller_description,
   rating: productRating,
+  avg_rating: productAvgRating,
   reviews_count: productReviewsCount,
+  total_sold,
+  sales_count,
+  view_count,
+  views_count,
+  total_views,
+  current_amount,
+  old_price,
+  previous_price,
+  price_change_percent,
   price: initialPrice,
   description_short,
   description_long,
@@ -55,7 +65,6 @@ const ProductInfo = ({
     ? Number(searchParams.get("lon"))
     : undefined;
   const addressFromUrl = searchParams.get("address") || undefined;
-  const cityFromUrl = searchParams.get("city") || undefined;
 
   
   const [detectedCoords, setDetectedCoords] = useState<{
@@ -115,11 +124,25 @@ const ProductInfo = ({
     lat,
     lon,
     address: addressFromUrl,
-    city: cityFromUrl,
   });
 
   
   const price = updatedProduct?.price ?? initialPrice;
+  const previousPrice = updatedProduct?.previous_price ?? updatedProduct?.old_price ?? previous_price ?? old_price;
+  const hasPriceTrend =
+    typeof previousPrice === "number" &&
+    previousPrice > 0 &&
+    typeof price === "number" &&
+    price > 0 &&
+    previousPrice !== price;
+  const computedPriceChangePercent = hasPriceTrend
+    ? ((price - previousPrice) / previousPrice) * 100
+    : 0;
+  const effectivePriceChangePercent =
+    typeof price_change_percent === "number" && !Number.isNaN(price_change_percent)
+      ? price_change_percent
+      : computedPriceChangePercent;
+  const isPriceUp = effectivePriceChangePercent > 0;
 
   const { data: reviewsData, isLoading: reviewsLoading } = useReviews({
     entity_type: "nomenclature",
@@ -128,9 +151,19 @@ const ProductInfo = ({
     size: 10,
   });
 
-  const avgRating = reviewsData?.avg_rating ?? productRating ?? 0;
+  const avgRating = reviewsData?.avg_rating ?? productAvgRating ?? productRating ?? 0;
   const reviewsCount = reviewsData?.count ?? productReviewsCount ?? 0;
   const hasReviews = reviewsCount > 0;
+  const metricSales = updatedProduct?.sales_count ?? updatedProduct?.total_sold ?? sales_count ?? total_sold ?? 0;
+  const metricViews =
+    updatedProduct?.view_count ??
+    updatedProduct?.views_count ??
+    updatedProduct?.total_views ??
+    view_count ??
+    views_count ??
+    total_views ??
+    0;
+  const metricCurrentAmount = updatedProduct?.current_amount ?? current_amount ?? 0;
 
   const shortDescription =
     description_short ||
@@ -141,6 +174,11 @@ const ProductInfo = ({
   const description =
     description_short || description_long || "Описание товара отсутствует";
   const shouldShowExpand = description_long && description_long.length > 200;
+  const descriptionText = isExpanded ? description : shortDescription;
+  const descriptionParagraphs = useMemo(
+    () => descriptionText.split(/\n+/).map((part) => part.trim()).filter(Boolean),
+    [descriptionText],
+  );
 
   const formatPrice = (price: number) => {
     return `${price?.toLocaleString("ru-RU")}₽/${unit_name === null ? "шт." : unit_name}`;
@@ -191,9 +229,27 @@ const ProductInfo = ({
           </div>
 
           <div className="pt-2 flex items-center justify-between">
-            <span className="text-xl font-normal">
-              {price ? formatPrice(price) : "Цена не указана"}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xl font-normal">
+                {price ? formatPrice(price) : "Цена не указана"}
+              </span>
+              {hasPriceTrend && (
+                <span
+                  className={`inline-flex items-center gap-1 text-xs mt-1 ${
+                    isPriceUp ? "text-red-600" : "text-emerald-600"
+                  }`}
+                >
+                  {isPriceUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                  Изменение цены: {Math.abs(effectivePriceChangePercent).toFixed(1)}%
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center gap-3 text-sm text-gray-600">
+            {metricSales > 0 && <span>Продано: {metricSales}</span>}
+            {metricViews > 0 && <span>Просмотров: {metricViews}</span>}
+            {metricCurrentAmount > 0 && <span>Сейчас в наличии: {metricCurrentAmount}</span>}
           </div>
 
           <Separator className="w-full my-4" />
@@ -367,9 +423,17 @@ const ProductInfo = ({
 
           <div className="overflow-hidden relative">
             <h3 className="font-medium text-lg mb-3">Описание</h3>
-            <p className="text-sm tracking-tight">
-              {isExpanded ? description : shortDescription}
-            </p>
+            <div className="text-sm leading-6 text-gray-700 tracking-normal break-words space-y-3">
+              {descriptionParagraphs.length > 0 ? (
+                descriptionParagraphs.map((paragraph, index) => (
+                  <p key={index} className="whitespace-pre-line">
+                    {paragraph}
+                  </p>
+                ))
+              ) : (
+                <p className="whitespace-pre-line">{descriptionText}</p>
+              )}
+            </div>
             {shouldShowExpand && (
               <Button
                 variant="link"

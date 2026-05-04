@@ -8,6 +8,7 @@ import { useCartItems } from "@/entities/cart/model/hooks";
 import { useCreateOrder } from "@/shared/hooks/useOrders";
 import { CartItem } from "@/entities/cart/ui/cart-item";
 import { useContragentPhone } from "@/shared/hooks/useContragentPhone";
+import { sendYandexGoal } from "@/shared/lib/analytics";
 import { Button } from "@/shared/ui/kit/button";
 import { Checkbox } from "@/shared/ui/kit/checkbox";
 import { Input } from "@/shared/ui/kit/input";
@@ -570,6 +571,12 @@ function PaymentContent() {
           totalPrice,
         },
       });
+
+      sendYandexGoal("checkout_success", {
+        total_price: totalPrice,
+        items_count: items.length,
+        source_page: "payment",
+      });
       
     } catch (error) {
       console.error("Ошибка при оформлении заказа:", error);
@@ -698,9 +705,10 @@ function PaymentContent() {
                       Закрыть
                     </Button>
                     <Button
+                      onClick={() => router.push("/thank-you?source=payment")}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer text-sm md:text-base"
                     >
-                      Перейти к заказам
+                      Страница спасибо
                     </Button>
                   </>
                 ) : (

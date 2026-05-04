@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "Оформление заказа",
   description:
     "Заполните данные для доставки и оплатите заказ удобным способом. Быстрое оформление в быстроИточка.",
+  alternates: {
+    canonical: "/payment",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
   openGraph: {
     title: "Оформление заказа | быстроИточка",
     description: "Заполните данные для доставки и оплатите заказ удобным способом.",

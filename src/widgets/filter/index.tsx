@@ -2,7 +2,7 @@
 "use client";
 
 import { Star, X } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -42,6 +42,7 @@ export const Filter = ({
   sellerOptions = [],
 }: FilterProps) => {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -76,6 +77,12 @@ export const Filter = ({
         : undefined,
       global_category_id: params.has("global_category_id")
         ? Number(params.get("global_category_id"))
+        : undefined,
+      section: params.get("section") || undefined,
+      realty_type: params.get("realty_type") || undefined,
+      deal_type: params.get("deal_type") || undefined,
+      rooms_count: params.has("rooms_count")
+        ? Number(params.get("rooms_count"))
         : undefined,
     };
   }, [searchParams]);
@@ -172,7 +179,7 @@ export const Filter = ({
         }
       });
 
-      router.push(`/products?${params.toString()}`, { scroll: false });
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
     300,
   );
@@ -234,12 +241,28 @@ export const Filter = ({
     });
   };
 
+  const handleSectionChange = (section: string) => {
+    updateUrl({ section: section === "all" ? undefined : section });
+  };
+
+  const handleRealtyTypeChange = (realtyType: string) => {
+    updateUrl({ realty_type: realtyType === "all" ? undefined : realtyType });
+  };
+
+  const handleDealTypeChange = (dealType: string) => {
+    updateUrl({ deal_type: dealType === "all" ? undefined : dealType });
+  };
+
+  const handleRoomsCountChange = (roomsCount: string) => {
+    updateUrl({ rooms_count: roomsCount === "all" ? undefined : Number(roomsCount) });
+  };
+
   const handleResetFilters = () => {
     const params = new URLSearchParams();
     if (searchParams.has("sort")) {
       params.set("sort", searchParams.get("sort")!);
     }
-    router.push(`/products?${params.toString()}`, { scroll: false });
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const activeFiltersCount = useMemo(() => {
@@ -260,6 +283,10 @@ export const Filter = ({
     if (currentFilters.global_category_id !== undefined) count++;
     if (currentFilters.has_photos) count++;
     if (currentFilters.seller_id !== undefined) count++;
+    if (currentFilters.section) count++;
+    if (currentFilters.realty_type) count++;
+    if (currentFilters.deal_type) count++;
+    if (currentFilters.rooms_count !== undefined) count++;
     return count;
   }, [currentFilters]);
 
@@ -574,6 +601,146 @@ export const Filter = ({
                           {seller.label}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          <>
+            <div>
+              <div className="flex justify-between items-center">
+                <p className="font-medium">Раздел</p>
+                {currentFilters.section !== undefined && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSectionChange("all")}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Сбросить
+                  </Button>
+                )}
+              </div>
+              <div className="pt-2">
+                <Select
+                  value={currentFilters.section || "all"}
+                  onValueChange={handleSectionChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите раздел" className="cursor-pointer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="cursor-pointer">Все разделы</SelectItem>
+                    <SelectItem value="realty" className="cursor-pointer">Недвижимость</SelectItem>
+                    <SelectItem value="products" className="cursor-pointer">Товары</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Separator />
+          </>
+
+          {(currentFilters.section === "realty" || currentFilters.realty_type || currentFilters.deal_type || currentFilters.rooms_count !== undefined) && (
+            <>
+              <div>
+                <div className="flex justify-between items-center">
+                  <p className="font-medium">Тип недвижимости</p>
+                  {currentFilters.realty_type !== undefined && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRealtyTypeChange("all")}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Сбросить
+                    </Button>
+                  )}
+                </div>
+                <div className="pt-2">
+                  <Select
+                    value={currentFilters.realty_type || "all"}
+                    onValueChange={handleRealtyTypeChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Выберите тип" className="cursor-pointer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="cursor-pointer">Любой тип</SelectItem>
+                      <SelectItem value="apartment" className="cursor-pointer">Квартира</SelectItem>
+                      <SelectItem value="house" className="cursor-pointer">Дом</SelectItem>
+                      <SelectItem value="commercial" className="cursor-pointer">Коммерческая</SelectItem>
+                      <SelectItem value="land" className="cursor-pointer">Участок</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center">
+                  <p className="font-medium">Сделка</p>
+                  {currentFilters.deal_type !== undefined && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDealTypeChange("all")}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Сбросить
+                    </Button>
+                  )}
+                </div>
+                <div className="pt-2">
+                  <Select
+                    value={currentFilters.deal_type || "all"}
+                    onValueChange={handleDealTypeChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Выберите тип сделки" className="cursor-pointer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="cursor-pointer">Любой тип сделки</SelectItem>
+                      <SelectItem value="sale" className="cursor-pointer">Продажа</SelectItem>
+                      <SelectItem value="rent" className="cursor-pointer">Аренда</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center">
+                  <p className="font-medium">Комнат</p>
+                  {currentFilters.rooms_count !== undefined && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRoomsCountChange("all")}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Сбросить
+                    </Button>
+                  )}
+                </div>
+                <div className="pt-2">
+                  <Select
+                    value={currentFilters.rooms_count?.toString() || "all"}
+                    onValueChange={handleRoomsCountChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Количество комнат" className="cursor-pointer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="cursor-pointer">Любое</SelectItem>
+                      <SelectItem value="1" className="cursor-pointer">1</SelectItem>
+                      <SelectItem value="2" className="cursor-pointer">2</SelectItem>
+                      <SelectItem value="3" className="cursor-pointer">3</SelectItem>
+                      <SelectItem value="4" className="cursor-pointer">4+</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

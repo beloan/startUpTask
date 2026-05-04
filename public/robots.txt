@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /cart/
+Disallow: /?*sort=
+Disallow: /?*filter=
+Disallow: /?*page=
+
+Sitemap: https://bystroi.ru/sitemap.xml
+
+# Yandex specific
+User-agent: Yandex
+Allow: /
+
+# Google specific
+User-agent: Googlebot
+Allow: /

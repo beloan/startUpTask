@@ -1,5 +1,29 @@
 import { City } from "@/shared/types/city";
 
+const ADDRESS_COOKIE_KEY = "bystroi_address";
+
+export function setAddressCookie(address: string) {
+  if (typeof document === "undefined") return;
+  const value = encodeURIComponent(address);
+  const maxAge = 60 * 60 * 24 * 30;
+  document.cookie = `${ADDRESS_COOKIE_KEY}=${value}; path=/; max-age=${maxAge}; samesite=lax`;
+}
+
+export function getAddressCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${ADDRESS_COOKIE_KEY}=`));
+  if (!match) return null;
+  const value = match.split("=").slice(1).join("=");
+  return value ? decodeURIComponent(value) : null;
+}
+
+export function clearAddressCookie() {
+  if (typeof document === "undefined") return;
+  document.cookie = `${ADDRESS_COOKIE_KEY}=; path=/; max-age=0; samesite=lax`;
+}
+
 /**
  * Получает координаты автоматически определенного города из sessionStorage
  * Используется для передачи координат в запросы к API без добавления их в URL
@@ -146,7 +170,6 @@ export function getCoordinatesFromSessionStorage(): { lat?: number; lon?: number
  */
 export function getLocationParams(): {
   address?: string;
-  city?: string;
   lat?: number;
   lon?: number;
 } {
@@ -157,16 +180,21 @@ export function getLocationParams(): {
   // 1. Сначала проверяем параметры из URL (они имеют приоритет)
   const urlParams = new URLSearchParams(window.location.search);
   const addressFromUrl = urlParams.get('address');
-  const cityFromUrl = urlParams.get('city');
   const latFromUrl = urlParams.get('lat');
   const lonFromUrl = urlParams.get('lon');
 
-  if (addressFromUrl || cityFromUrl) {
+  if (addressFromUrl) {
     return {
       address: addressFromUrl || undefined,
-      city: cityFromUrl || undefined,
       lat: latFromUrl ? Number(latFromUrl) : undefined,
       lon: lonFromUrl ? Number(lonFromUrl) : undefined,
+    };
+  }
+
+  const addressFromCookie = getAddressCookie();
+  if (addressFromCookie) {
+    return {
+      address: addressFromCookie,
     };
   }
 
@@ -193,17 +221,23 @@ export function getLocationParamsString(): string {
   // 1. Сначала проверяем параметры из URL
   const urlParams = new URLSearchParams(window.location.search);
   const addressFromUrl = urlParams.get('address');
-  const cityFromUrl = urlParams.get('city');
   const latFromUrl = urlParams.get('lat');
   const lonFromUrl = urlParams.get('lon');
 
-  if (addressFromUrl || cityFromUrl) {
+  if (addressFromUrl) {
     // Если есть параметры в URL - возвращаем их
     const resultParams = new URLSearchParams();
     if (addressFromUrl) resultParams.set('address', addressFromUrl);
-    if (cityFromUrl) resultParams.set('city', cityFromUrl);
     if (latFromUrl) resultParams.set('lat', latFromUrl);
     if (lonFromUrl) resultParams.set('lon', lonFromUrl);
+    const paramString = resultParams.toString();
+    return paramString ? `?${paramString}` : '';
+  }
+
+  const addressFromCookie = getAddressCookie();
+  if (addressFromCookie) {
+    const resultParams = new URLSearchParams();
+    resultParams.set('address', addressFromCookie);
     const paramString = resultParams.toString();
     return paramString ? `?${paramString}` : '';
   }

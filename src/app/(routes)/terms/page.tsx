@@ -1,31 +1,49 @@
 import type { Metadata } from "next";
+import { StructuredData } from "@/feature/structured-data/structured-data";
 
 export const metadata: Metadata = {
   title: "Пользовательское соглашение",
-  description: "Ознакомьтесь с условиями использования сервиса быстроИточка.",
+  description: "Ознакомьтесь с условиями использования сервиса БыстроИточка.",
+  alternates: {
+    canonical: "/terms",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
     title: "Пользовательское соглашение | быстроИточка",
-    description: "Ознакомьтесь с условиями использования сервиса быстроИточка.",
+    description: "Ознакомьтесь с условиями использования сервиса БыстроИточка.",
     url: "https://bystroi.ru/terms",
     images: ["/favicon.ico"],
   },
   twitter: {
     title: "Пользовательское соглашение",
-    description: "Ознакомьтесь с условиями использования сервиса быстроИточка.",
+    description: "Ознакомьтесь с условиями использования сервиса БыстроИточка.",
     images: ["/favicon.ico"],
   },
 };
 
 export default function Docs() {
   return (
-    <section className="py-8">
-      <div className="container">
-        <div>
-          <h1 className="text-lg font-medium tracking-tight">
-            Пользовательское соглашение
-          </h1>
-        </div>
-        <div className="space-y-6 text-sm leading-6 text-gray-700">
+    <>
+      <StructuredData
+        type="BreadcrumbList"
+        data={{
+          items: [
+            { name: "Главная", url: "https://bystroi.ru" },
+            { name: "Пользовательское соглашение", url: "https://bystroi.ru/terms" },
+          ],
+        }}
+      />
+      <section className="py-8">
+        <div className="container">
+          <div>
+            <h1 className="text-lg font-medium tracking-tight">
+              Пользовательское соглашение
+            </h1>
+          </div>
+          <div className="space-y-6 text-sm leading-6 text-gray-700">
           <p>
             Настоящее Пользовательское соглашение регулирует отношения между
             интернет-магазином цветов и подарков (далее — «Магазин») и
@@ -99,8 +117,9 @@ export default function Docs() {
             предварительного уведомления. Актуальная версия всегда доступна на
             данной странице.
           </p>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

@@ -8,7 +8,7 @@ const MAX_VIEWED_ITEMS = 10;
 const STORAGE_KEY = 'productViewHistory';
 
 export interface ViewedProduct extends Pick<Product, 
-  'id' | 'name' | 'price' | 'images' | 'category_name' | 'manufacturer_name' | 'rating' | 'total_sold'
+  'id' | 'name' | 'price' | 'images' | 'category_name' | 'manufacturer_name' | 'rating' | 'avg_rating' | 'total_sold' | 'sales_count' | 'view_count' | 'views_count' | 'total_views'
 > {}
 
 export const useProductViewHistory = () => {
@@ -58,7 +58,12 @@ export const useProductViewHistory = () => {
         category_name: product.category_name,
         manufacturer_name: product.manufacturer_name,
         rating: product.rating,
+        avg_rating: product.avg_rating,
         total_sold: product.total_sold,
+        sales_count: product.sales_count,
+        view_count: product.view_count,
+        views_count: product.views_count,
+        total_views: product.total_views,
       };
 
 

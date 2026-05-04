@@ -1,14 +1,16 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { List, Map as MapIcon, Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 import { ProductCard } from "@/entities/product";
+import { fetchProducts } from "@/entities/product/api";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
 
 import { Filter } from "@/widgets/filter";
+import { ProductsMap } from "@/widgets/products-map";
 
 import { Badge } from "@/shared/ui/kit/badge";
 import { Button } from "@/shared/ui/kit/button";
@@ -30,10 +32,15 @@ function SearchPageContent() {
   const maxPrice = searchParams.get("max_price") || "";
   const sortBy = searchParams.get("sort_by") || "relevance";
   const address = searchParams.get("address") || "";
-  const city = searchParams.get("city") || "";
   const sellerId = searchParams.get("seller_id") || "";
+  const section = searchParams.get("section") || "";
+  const realtyType = searchParams.get("realty_type") || "";
+  const dealType = searchParams.get("deal_type") || "";
+  const roomsCount = searchParams.get("rooms_count") || "";
   const lat = searchParams.get("lat");
   const lon = searchParams.get("lon");
+  const radiusKm = searchParams.get("radius_km") || "20";
+  const viewMode = searchParams.get("view") === "map" ? "map" : "list";
 
   const [searchInput, setSearchInput] = useState(query);
   const [products, setProducts] = useState<any[]>([]);
@@ -60,10 +67,14 @@ function SearchPageContent() {
     maxPrice,
     sortBy,
     address,
-    city,
     sellerId,
+    section,
+    realtyType,
+    dealType,
+    roomsCount,
     lat,
     lon,
+    radiusKm,
   ]);
 
   useEffect(() => {
@@ -93,93 +104,48 @@ function SearchPageContent() {
   const searchProducts = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        size: "20",
-      });
-
-      if (query) {
-        params.append("name", query);
-      }
-
-      if (category) {
-        params.append("category", category);
-      }
-
-      if (minPrice) {
-        params.append("min_price", minPrice);
-      }
-
-      if (maxPrice) {
-        params.append("max_price", maxPrice);
-      }
+      let sort_by: "price" | "total_sold" | "created_at" | undefined;
+      let sort_order: "asc" | "desc" | undefined;
 
       switch (sortBy) {
         case "price_asc":
-          params.append("sort_by", "price");
-          params.append("sort_order", "asc");
+          sort_by = "price";
+          sort_order = "asc";
           break;
         case "price_desc":
-          params.append("sort_by", "price");
-          params.append("sort_order", "desc");
+          sort_by = "price";
+          sort_order = "desc";
           break;
         case "total_sold":
-          params.append("sort_by", "total_sold");
-          params.append("sort_order", "desc");
+          sort_by = "total_sold";
+          sort_order = "desc";
           break;
         case "newest":
-          params.append("sort_by", "created_at");
-          params.append("sort_order", "desc");
+          sort_by = "created_at";
+          sort_order = "desc";
           break;
       }
 
-      if (address) {
-        params.append("address", address);
-      } else if (city) {
-        params.append("city", city);
-      }
-
-      if (sellerId) {
-        params.append("seller_id", sellerId);
-      }
-
-      if (lat) {
-        params.append("lat", lat);
-      } else if (typeof window !== "undefined") {
-        try {
-          const detected = sessionStorage.getItem("detected_city");
-          if (detected) {
-            const parsed = JSON.parse(detected);
-            if (parsed.lat != null) {
-              params.append("lat", String(parsed.lat));
-            }
-          }
-        } catch (e) {}
-      }
-
-      if (lon) {
-        params.append("lon", lon);
-      } else if (typeof window !== "undefined") {
-        try {
-          const detected = sessionStorage.getItem("detected_city");
-          if (detected) {
-            const parsed = JSON.parse(detected);
-            if (parsed.lon != null) {
-              params.append("lon", String(parsed.lon));
-            }
-          }
-        } catch (e) {}
-      }
-
-      const response = await fetch(
-        `https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`,
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchProducts({
+        page,
+        size: 20,
+        name: query || undefined,
+        category: category || undefined,
+        min_price: minPrice ? Number(minPrice) : undefined,
+        max_price: maxPrice ? Number(maxPrice) : undefined,
+        sort_by,
+        sort_order,
+        address: address || undefined,
+        seller_id: sellerId ? Number(sellerId) : undefined,
+        section: section || undefined,
+        realty_type: realtyType || undefined,
+        deal_type: dealType || undefined,
+        rooms_count: roomsCount ? Number(roomsCount) : undefined,
+        lat: lat ? Number(lat) : undefined,
+        lon: lon ? Number(lon) : undefined,
+        apply_radius_filter: true,
+        radius_km: Number(radiusKm) || 20,
+      });
 
       let newProducts = data.result || [];
 
@@ -218,18 +184,21 @@ function SearchPageContent() {
     setPage(1);
   };
 
-  const updateUrl = (params: Record<string, string>) => {
-    const newParams = new URLSearchParams();
+  const handleRadiusChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("radius_km", value);
+    router.push(`/search?${params.toString()}`);
+    setPage(1);
+  };
 
-    if (params.q) {
-      newParams.set("q", params.q);
-    } else if (query) {
-      newParams.set("q", query);
-    }
+  const updateUrl = (params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
 
     Object.keys(params).forEach((key) => {
-      if (key !== "q" && params[key]) {
+      if (params[key]) {
         newParams.set(key, params[key]);
+      } else {
+        newParams.delete(key);
       }
     });
 
@@ -271,11 +240,24 @@ function SearchPageContent() {
     };
   }, [products]);
 
-  const hasActiveFilters = category || minPrice || maxPrice;
+  const hasActiveFilters =
+    category ||
+    minPrice ||
+    maxPrice ||
+    section ||
+    realtyType ||
+    dealType ||
+    roomsCount;
 
   const sellerOptions = useMemo(() => {
-    return uniqueSellers.map((name) => ({ value: name, label: name }));
-  }, [uniqueSellers]);
+    const sellerMap = new Map<number, string>();
+    products.forEach((product) => {
+      if (product.seller_id && product.seller_name) {
+        sellerMap.set(product.seller_id, product.seller_name);
+      }
+    });
+    return Array.from(sellerMap.entries()).map(([value, label]) => ({ value, label }));
+  }, [products]);
 
   return (
     <div className="container py-8">
@@ -346,6 +328,39 @@ function SearchPageContent() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Радиус:</span>
+                <Select value={radiusKm} onValueChange={handleRadiusChange}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Радиус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3 км</SelectItem>
+                    <SelectItem value="5">5 км</SelectItem>
+                    <SelectItem value="10">10 км</SelectItem>
+                    <SelectItem value="20">20 км</SelectItem>
+                    <SelectItem value="50">50 км</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (viewMode === "map") {
+                    params.set("view", "list");
+                  } else {
+                    params.set("view", "map");
+                  }
+                  router.push(`/search?${params.toString()}`);
+                }}
+                className="font-normal"
+              >
+                {viewMode === "map" ? <List className="h-4 w-4" /> : <MapIcon className="h-4 w-4" />}
+                {viewMode === "map" ? "Список" : "Карта"}
+              </Button>
             </div>
 
             {hasActiveFilters && (
@@ -399,6 +414,13 @@ function SearchPageContent() {
             </div>
           ) : products.length > 0 ? (
             <>
+              {viewMode === "map" && (
+                <ProductsMap
+                  products={products}
+                  fallbackLat={lat ? Number(lat) : undefined}
+                  fallbackLon={lon ? Number(lon) : undefined}
+                />
+              )}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-5">
                 {products.map((product) => (
                   <ProductCard key={product.id} {...product} />

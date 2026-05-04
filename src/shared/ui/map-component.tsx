@@ -29,6 +29,11 @@ interface MapComponentProps {
   zoom?: number;
   width?: number | string;
   height?: number | string;
+  centerPointLabel?: string;
+  summaryTitle?: string;
+  summarySubtitle?: string;
+  pointsLegendLabel?: string;
+  centerLegendLabel?: string;
 }
 
 export const MapComponent: React.FC<MapComponentProps> = ({
@@ -38,6 +43,11 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   zoom = 12,
   width = "100%",
   height = "100%",
+  centerPointLabel = "Центр города",
+  summaryTitle = "Пункты выдачи",
+  summarySubtitle,
+  pointsLegendLabel = "Пункты выдачи",
+  centerLegendLabel = "Ваш город",
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -82,7 +92,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             shadowSize: [41, 41],
           })}
         >
-          <Popup>Центр города</Popup>
+          <Popup>{centerPointLabel}</Popup>
         </Marker>
 
         {locations.map((loc) => (
@@ -110,19 +120,19 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       <div className="absolute bottom-2 left-2 right-2 bg-white/90 backdrop-blur-sm rounded-md py-2 px-3 shadow-sm z-[1000] text-xs leading-tight">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Пункты выдачи</p>
+            <p className="text-sm font-medium">{summaryTitle}</p>
             <p className="text-xs text-gray-600">
-              {locations.length} складов в радиусе 20 км
+              {summarySubtitle || `${locations.length} точек на карте`}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 bg-red-500 rounded-full" />
-              <span className="text-xs">Пункты выдачи</span>
+              <span className="text-xs">{pointsLegendLabel}</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 bg-blue-500 rounded-full" />
-              <span className="text-xs">Ваш город</span>
+              <span className="text-xs">{centerLegendLabel}</span>
             </div>
           </div>
         </div>

@@ -18,6 +18,7 @@ import {
 } from "@/shared/api/autosuggestions";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useLocations } from "@/shared/hooks/useLocations";
+import { clearAddressCookie, setAddressCookie } from "@/shared/lib/city-utils";
 import { cn } from "@/shared/lib/utils";
 import { City } from "@/shared/types/city";
 import { Button } from "@/shared/ui/kit/button";
@@ -95,7 +96,10 @@ export const ChangeLocationModal = () => {
 
   useEffect(() => {
     const addressFromUrl = searchParams.get("address");
-    if (addressFromUrl) setAddressInput(addressFromUrl);
+    if (addressFromUrl) {
+      setAddressInput(addressFromUrl);
+      setAddressCookie(addressFromUrl);
+    }
 
     const latFromUrl = searchParams.get("lat");
     const lonFromUrl = searchParams.get("lon");
@@ -107,8 +111,7 @@ export const ChangeLocationModal = () => {
       setAddressCoords(null);
     }
 
-    const cityFromUrl = searchParams.get("city");
-    if (typeof window !== "undefined" && !cityFromUrl && !addressFromUrl) {
+    if (typeof window !== "undefined" && !addressFromUrl) {
       try {
         const detected = sessionStorage.getItem("detected_city");
         setDetectedCity(detected ? JSON.parse(detected) : null);
@@ -124,9 +127,8 @@ export const ChangeLocationModal = () => {
     if (typeof window === "undefined") return;
 
     const checkDetectedCity = () => {
-      const cityFromUrl = searchParams.get("city");
       const addressFromUrl = searchParams.get("address");
-      if (!cityFromUrl && !addressFromUrl) {
+      if (!addressFromUrl) {
         try {
           const detected = sessionStorage.getItem("detected_city");
           setDetectedCity(detected ? JSON.parse(detected) : null);
@@ -155,7 +157,6 @@ export const ChangeLocationModal = () => {
       page: 1,
       size: 50,
       address: addressInput || undefined,
-      city: !addressInput && selected?.name ? selected.name : undefined,
       lat: addressCoords?.lat ?? parsedCityFromAddress?.coords?.lat ?? selected?.coords?.lat,
       lon: addressCoords?.lon ?? parsedCityFromAddress?.coords?.lon ?? selected?.coords?.lon,
       radius: 20,
@@ -279,19 +280,23 @@ export const ChangeLocationModal = () => {
               params.set("address", stored.address);
               if (stored.lat) params.set("lat", String(stored.lat));
               if (stored.lon) params.set("lon", String(stored.lon));
-              if (cityFromStorage) params.set("city", cityFromStorage.name);
-              else params.delete("city");
+              params.delete("city");
+              setAddressCookie(stored.address);
             } else if (stored.city) {
               const cityFromStorage = data.find(
                 (c) => c.name === stored.city || c.name_alt === stored.city || c.name_en === stored.city
               );
               if (cityFromStorage) {
                 setSelected(cityFromStorage);
-                params.set("city", stored.city);
+                setAddressInput(stored.city);
+                params.set("address", stored.city);
                 if (cityFromStorage.coords) {
                   params.set("lat", String(cityFromStorage.coords.lat));
                   params.set("lon", String(cityFromStorage.coords.lon));
+                  setAddressCoords({ lat: cityFromStorage.coords.lat, lon: cityFromStorage.coords.lon });
                 }
+                params.delete("city");
+                setAddressCookie(stored.city);
               }
             }
 
@@ -303,20 +308,11 @@ export const ChangeLocationModal = () => {
           }
         } else {
           const addressParam = searchParams.get("address");
-          const cityParam = searchParams.get("city");
 
           if (addressParam) {
             setAddressInput(addressParam);
             const cityFromAddress = findCityInAddress(addressParam, data);
             if (cityFromAddress) setSelected(cityFromAddress);
-          } else if (cityParam) {
-            const cityFromUrl = data.find(
-              (c) =>
-                c.name === cityParam ||
-                c.name_alt === cityParam ||
-                c.name_en?.toLowerCase() === cityParam.toLowerCase()
-            );
-            if (cityFromUrl) setSelected(cityFromUrl);
           }
         }
       } catch (error) {
@@ -413,20 +409,28 @@ export const ChangeLocationModal = () => {
                             const newCity = selected?.name === city.name ? null : city;
                             setSelected(newCity);
                             setOpen(false);
-                            setAddressInput("");
-                            setAddressCoords(null);
+                            setAddressInput(newCity?.name || "");
+                            setAddressCoords(newCity?.coords ? { lat: newCity.coords.lat, lon: newCity.coords.lon } : null);
 
                             if (newCity) {
                               const newParams = new URLSearchParams(searchParams.toString());
-                              newParams.set("city", newCity.name);
-                              newParams.delete("address");
+                              newParams.set("address", newCity.name);
+                              newParams.delete("city");
                               if (newCity.coords) {
                                 newParams.set("lat", String(newCity.coords.lat));
                                 newParams.set("lon", String(newCity.coords.lon));
                               }
                               router.push(`?${newParams.toString()}`, { scroll: false });
-                              // Удаляем адрес из localStorage
-                              localStorage.setItem(storageKey, JSON.stringify({ city: newCity.name, manual: true }));
+                              localStorage.setItem(
+                                storageKey,
+                                JSON.stringify({
+                                  address: newCity.name,
+                                  lat: newCity.coords?.lat,
+                                  lon: newCity.coords?.lon,
+                                  manual: true,
+                                })
+                              );
+                              setAddressCookie(newCity.name);
                             }
                           }}
                         >
@@ -454,10 +458,12 @@ export const ChangeLocationModal = () => {
                     if (!val.trim()) {
                       const newParams = new URLSearchParams(searchParams.toString());
                       newParams.delete("address");
+                      newParams.delete("city");
                       newParams.delete("lat");
                       newParams.delete("lon");
                       router.push(`?${newParams.toString()}`, { scroll: false });
                       localStorage.removeItem(storageKey);
+                      clearAddressCookie();
                     }
                   }}
                   onFocus={() => setIsAddressFocused(true)}
@@ -519,7 +525,7 @@ export const ChangeLocationModal = () => {
 
                   const newParams = new URLSearchParams(searchParams.toString());
                   newParams.set("address", finalAddress);
-                  if (cityFromAddress) newParams.set("city", cityFromAddress.name);
+                  newParams.delete("city");
                   if (coords) {
                     newParams.set("lat", String(coords.lat));
                     newParams.set("lon", String(coords.lon));
@@ -534,10 +540,10 @@ export const ChangeLocationModal = () => {
                       address: finalAddress,
                       lat: coords?.lat,
                       lon: coords?.lon,
-                      city: cityFromAddress?.name,
                       manual: true,
                     })
                   );
+                  setAddressCookie(finalAddress);
                 }}
                 className="w-full mt-2"
                 disabled={isValidatingAddress}

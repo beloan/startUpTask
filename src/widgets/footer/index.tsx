@@ -44,11 +44,9 @@ const Footer = () => {
     params.set("global_category_id", categoryId.toString());
 
     const address = searchParams.get("address");
-    const city = searchParams.get("city");
     const sellerId = searchParams.get("seller_id");
 
     if (address) params.set("address", address);
-    else if (city) params.set("city", city);
     if (sellerId) params.set("seller_id", sellerId);
 
     return `/products?${params.toString()}`;

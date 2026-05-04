@@ -58,11 +58,16 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const yandexWebmasterVerification = process.env.NEXT_PUBLIC_YANDEX_WEBMASTER_VERIFICATION;
+
   return (
     <html lang="ru" className={`bg-white text-gray-800 ${inter.className}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
+        {yandexWebmasterVerification ? (
+          <meta name="yandex-verification" content={yandexWebmasterVerification} />
+        ) : null}
         
         <Script
           id="yandex-metrika"

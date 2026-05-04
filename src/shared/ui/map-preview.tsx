@@ -31,6 +31,11 @@ interface MapPreviewProps {
   zoom?: number;
   width?: number | string;
   height?: number | string;
+  centerPointLabel?: string;
+  summaryTitle?: string;
+  summarySubtitle?: string;
+  pointsLegendLabel?: string;
+  centerLegendLabel?: string;
 }
 
 export const MapPreview: React.FC<MapPreviewProps> = ({
@@ -40,6 +45,11 @@ export const MapPreview: React.FC<MapPreviewProps> = ({
   zoom = 12,
   width = "100%",
   height = "100%",
+  centerPointLabel,
+  summaryTitle,
+  summarySubtitle,
+  pointsLegendLabel,
+  centerLegendLabel,
 }) => {
   return (
     <div className="relative h-full w-full">
@@ -57,6 +67,11 @@ export const MapPreview: React.FC<MapPreviewProps> = ({
           zoom={zoom}
           width={width}
           height={height}
+          centerPointLabel={centerPointLabel}
+          summaryTitle={summaryTitle}
+          summarySubtitle={summarySubtitle}
+          pointsLegendLabel={pointsLegendLabel}
+          centerLegendLabel={centerLegendLabel}
         />
       </Suspense>
     </div>
