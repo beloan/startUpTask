@@ -5,7 +5,6 @@ import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import Link from "next/link";
 
 const Poster = () => {
   const slides = [
@@ -70,11 +69,11 @@ const Poster = () => {
         className="banner-swiper"
       >
         {slides.map((slide, index) => (
-          <SwiperSlide className="rounded-3xl overflow-hidden" key={slide.id}>
+          <SwiperSlide className="overflow-hidden" key={slide.id}>
             <motion.div
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.25 }}
-              className="relative h-[220px] md:h-[300px] lg:h-[340px] w-full overflow-hidden rounded-3xl border border-white/30 shadow-[0_20px_60px_rgba(15,23,42,0.12)]"
+              className="relative h-[220px] md:h-[300px] lg:h-[340px] w-full overflow-hidden border border-white/30 shadow-[0_20px_60px_rgba(15,23,42,0.12)]"
             >
               <Image
                 src={`/poster/${slide.id}.png`}
@@ -96,14 +95,7 @@ const Poster = () => {
                   <p className="mt-3 max-w-lg text-sm md:text-base text-white/85">
                     {slide.description}
                   </p>
-                  <div className="mt-5 flex items-center gap-3">
-                    <Link
-                      href={slide.buttonLink}
-                      className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-100"
-                    >
-                      {slide.buttonText}
-                    </Link>
-                  </div>
+                  <div className="mt-5" />
                 </div>
               </div>
             </motion.div>
