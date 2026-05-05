@@ -174,7 +174,7 @@ const Categories = () => {
                 whileHover={{ scale: 1.05, transition: { type: "spring", stiffness: 300 } }}
                 href={`/products?${categoryUrl.toString()}`}
                 style={{ background: gradient }}
-                className="relative group flex h-40 items-end p-4 rounded-lg overflow-hidden hover:ring-2 hover:ring-gray-200"
+                className="relative group flex h-56 items-end p-4 rounded-lg overflow-hidden hover:ring-2 hover:ring-gray-200"
               >
                 <div className="flex justify-center absolute inset-0 brightness-75 group-hover:brightness-50 transition-all duration-300">
                   {category.image_url ? (
