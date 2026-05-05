@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingCart, Star, Plus, Minus, Loader2, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -12,8 +12,7 @@ import { Product } from "../model/types";
 import { useTrackEvent } from "@/entities/statistics/model/hooks";
 import { Button } from "@/shared/ui/kit/button";
 import { useDataUser } from "@/shared/hooks/useDataUser";
-import { getDetectedCityCoords, getLocationParams, getLocationParamsString } from "@/shared/lib/city-utils";
-import { fetchProduct } from "@/entities/product/api";
+import { getLocationParamsString } from "@/shared/lib/city-utils";
 import { PhoneAuthSheet } from "@/feature/auth/phone-auth-sheet";
 
 type ProductCardProps = Product & {
@@ -30,16 +29,6 @@ export const ProductCard = ({
   current_amount,
   category_name,
   images,
-  total_sold,
-  sales_count,
-  rating,
-  avg_rating,
-  old_price,
-  previous_price,
-  price_change_percent,
-  view_count,
-  views_count,
-  total_views,
   position,
   page,
   isRecommendation = false,
@@ -56,11 +45,9 @@ export const ProductCard = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const hasTrackedView = useRef(false);
-  const hasLoadedDetails = useRef(false);
   const dataUser = useDataUser();
   const [isAuthSheetOpen, setIsAuthSheetOpen] = useState(false);
   const [pendingAdd, setPendingAdd] = useState<{ id: number; quantity: number } | null>(null);
-  const [detailMetrics, setDetailMetrics] = useState<{ views?: number; currentAmount?: number } | null>(null);
 
   useEffect(() => {
     if (cartData?.goods) {
@@ -99,48 +86,6 @@ export const ProductCard = ({
     };
   }, [id, position, page, trackView, priority]);
 
-  useEffect(() => {
-    if (!id || hasLoadedDetails.current) return;
-    if (current_amount != null && (view_count != null || views_count != null || total_views != null)) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
-        hasLoadedDetails.current = true;
-        observer.disconnect();
-
-        const location = getLocationParams();
-        const detected = getDetectedCityCoords();
-        const lat = location.lat ?? detected?.lat;
-        const lon = location.lon ?? detected?.lon;
-        const address = location.address;
-
-        fetchProduct({
-          product_id: id,
-          lat,
-          lon,
-          address,
-        })
-          .then((data: any) => {
-            if (!data) return;
-            const views = data.view_count ?? data.views_count ?? data.total_views;
-            const currentAmount = data.current_amount;
-            if (views == null && currentAmount == null) return;
-            setDetailMetrics({ views, currentAmount });
-          })
-          .catch(() => {});
-      },
-      { threshold: 0.3 }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [id, current_amount, view_count, views_count, total_views]);
 
   useEffect(() => {
     if (dataUser && pendingAdd) {
@@ -220,29 +165,6 @@ export const ProductCard = ({
   }, []);
 
   const displayPrice = price != null ? `${price.toLocaleString('ru-RU')}₽` : "Цена не указана";
-  const metricSales = sales_count ?? total_sold ?? 0;
-  const metricViews = view_count ?? views_count ?? total_views ?? detailMetrics?.views;
-  const metricRating = avg_rating ?? rating ?? 0;
-  const metricCurrentAmount = current_amount ?? detailMetrics?.currentAmount;
-  const previousPrice = previous_price ?? old_price;
-  const hasPriceTrend =
-    typeof previousPrice === "number" &&
-    previousPrice > 0 &&
-    typeof price === "number" &&
-    price > 0 &&
-    previousPrice !== price;
-  const computedPriceChangePercent = hasPriceTrend
-    ? ((price - previousPrice) / previousPrice) * 100
-    : 0;
-  const effectivePriceChangePercent =
-    typeof price_change_percent === "number" && !Number.isNaN(price_change_percent)
-      ? price_change_percent
-      : computedPriceChangePercent;
-  const isPriceUp = effectivePriceChangePercent > 0;
-  const displayRating = metricRating > 0;
-  const displayTotalSold = sales_count != null || total_sold != null;
-  const displayViews = metricViews != null;
-  const displayCurrentAmount = metricCurrentAmount != null;
   const transformedImageUrl = images?.[0] ? transformImageUrl(images[0]) : null;
 
   const locationParams = getLocationParamsString();
@@ -291,40 +213,10 @@ export const ProductCard = ({
             <p className="tracking-tight inline font-medium leading-4 text-white line-clamp-2">
               {name}
             </p>
-            <div className="flex items-center gap-2 text-xs text-gray-300 mt-1">
-              {displayTotalSold && <span>{metricSales} прод.</span>}
-              {displayViews ? (
-                <span>{metricViews} просмотров</span>
-              ) : (
-                <span>просмотры —</span>
-              )}
-              {displayCurrentAmount ? (
-                <span>в наличии {metricCurrentAmount}</span>
-              ) : (
-                <span>в наличии —</span>
-              )}
-            </div>
-            <span className="text-gray-300 text-sm block">{category_name}</span>
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <span className="font-medium text-lg text-white">{displayPrice}</span>
-                {hasPriceTrend && (
-                  <span
-                    className={`inline-flex items-center gap-1 text-xs ${
-                      isPriceUp ? "text-red-200" : "text-emerald-200"
-                    }`}
-                  >
-                    {isPriceUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                    {Math.abs(effectivePriceChangePercent).toFixed(1)}%
-                  </span>
-                )}
               </div>
-              {displayRating && (
-                <span className="flex text-xs font-medium text-white justify-center items-center">
-                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 inline mr-1" />
-                  {metricRating.toFixed(1)}
-                </span>
-              )}
             </div>
 
             <div className="flex items-center justify-between pt-2">

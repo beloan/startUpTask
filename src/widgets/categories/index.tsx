@@ -13,7 +13,6 @@ import { Skeleton } from "@/shared/ui/kit/skeleton";
 const Categories = () => {
   const { data: categoriesData, isLoading } = useCategoryTree(true);
   const searchParams = useSearchParams();
-  const [showAllCategories, setShowAllCategories] = React.useState(false);
 
   const softGradients = [
     "linear-gradient(135deg, #f9d8d6 0%, #f8e1e7 100%)",
@@ -111,47 +110,6 @@ const Categories = () => {
     ? homeAndGardenSubcategories
     : mainCategories).slice(0, 7);
 
-  const renderCategoryTree = (categories: any[], level = 0): React.ReactNode => {
-    if (!categories.length) return null;
-    
-    // Limit display at level 0 (top-level categories)
-    const limitedCategories = level === 0 && !showAllCategories ? categories.slice(0, 5) : categories;
-
-    return (
-      <ul className={level === 0 ? "grid gap-3 md:grid-cols-2 xl:grid-cols-3" : "mt-3 space-y-2 pl-4 border-l border-gray-200"}>
-        {limitedCategories.map((category) => {
-          const categoryUrl = new URLSearchParams();
-          categoryUrl.set('global_category_id', category.id.toString());
-          const address = searchParams.get('address');
-          const sellerId = searchParams.get('seller_id');
-          if (address) categoryUrl.set('address', address);
-          if (sellerId) categoryUrl.set('seller_id', sellerId);
-
-          const activeChildren = category.children?.filter((child: any) => child.is_active && hasProductsInTree(child)) || [];
-
-          return (
-            <li key={category.id} className="rounded-xl border border-gray-100 bg-white/80 p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <Link
-                  href={`/products?${categoryUrl.toString()}`}
-                  className="font-medium tracking-tight text-gray-900 hover:text-blue-600"
-                >
-                  {category.name}
-                </Link>
-                <span className="text-xs text-gray-500">{activeChildren.length}</span>
-              </div>
-              {activeChildren.length > 0 && (
-                <div className="mt-3">
-                  {renderCategoryTree(activeChildren, level + 1)}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    );
-  };
-
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -216,7 +174,7 @@ const Categories = () => {
                 whileHover={{ scale: 1.05, transition: { type: "spring", stiffness: 300 } }}
                 href={`/products?${categoryUrl.toString()}`}
                 style={{ background: gradient }}
-                className="relative group flex h-56 items-end p-4 rounded-lg overflow-hidden hover:ring-2 hover:ring-gray-200"
+                className="relative group flex h-40 items-end p-4 rounded-lg overflow-hidden hover:ring-2 hover:ring-gray-200"
               >
                 <div className="flex justify-center absolute inset-0 brightness-75 group-hover:brightness-50 transition-all duration-300">
                   {category.image_url ? (
@@ -244,46 +202,6 @@ const Categories = () => {
           })}
         </motion.div>
 
-        <div className="mt-8 rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 md:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-medium tracking-tight text-gray-900">
-                Все категории и подкатегории
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Семантический список для удобной навигации и индексации.
-              </p>
-            </div>
-            <Link href="/categories" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-              Открыть все категории
-            </Link>
-          </div>
-          <div className="mt-4">
-            {renderCategoryTree(mainCategories)}
-            {mainCategories.length > 5 && !showAllCategories && (
-              <div className="mt-4 flex justify-center">
-                <Button
-                  onClick={() => setShowAllCategories(true)}
-                  variant="outline"
-                  className="hover:ring-gray-200"
-                >
-                  Показать ещё ({mainCategories.length - 5} скрыто)
-                </Button>
-              </div>
-            )}
-            {showAllCategories && mainCategories.length > 5 && (
-              <div className="mt-2 flex justify-center">
-                <Button
-                  onClick={() => setShowAllCategories(false)}
-                  variant="outline"
-                  className="hover:ring-gray-200"
-                >
-                  Свернуть
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </section>
   );
