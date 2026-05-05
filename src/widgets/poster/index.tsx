@@ -73,7 +73,7 @@ const Poster = () => {
             <motion.div
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.25 }}
-              className="relative h-[160px] sm:h-[190px] md:h-[220px] lg:h-[260px] w-full overflow-hidden border border-white/30 shadow-[0_20px_60px_rgba(15,23,42,0.12)]"
+              className="relative w-full overflow-hidden border border-white/30 shadow-[0_20px_60px_rgba(15,23,42,0.12)] aspect-[16/7] sm:aspect-[16/6] lg:aspect-[16/5]"
             >
               <Image
                 src={`/poster/${slide.id}.png`}
