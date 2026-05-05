@@ -83,21 +83,7 @@ const Poster = () => {
                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 60vw, 50vw"
                 className="object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
-              <div className="absolute inset-0 flex items-end md:items-center">
-                <div className="max-w-xl p-5 md:p-8 text-white">
-                  <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-medium tracking-wide backdrop-blur-sm">
-                    Баннерное предложение
-                  </p>
-                  <h2 className="mt-3 text-2xl md:text-4xl font-semibold tracking-tight leading-tight">
-                    {slide.title}
-                  </h2>
-                  <p className="mt-3 max-w-lg text-sm md:text-base text-white/85">
-                    {slide.description}
-                  </p>
-                  <div className="mt-5" />
-                </div>
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
             </motion.div>
           </SwiperSlide>
         ))}
