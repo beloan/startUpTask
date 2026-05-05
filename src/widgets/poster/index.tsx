@@ -43,33 +43,33 @@ const Poster = () => {
       <Swiper
         loop={true}
         slidesPerView={1}
-        spaceBetween={14}
+        spaceBetween={0}
         pagination={{
           clickable: true,
         }}
         breakpoints={{
           0: {
             slidesPerView: 1,
-            spaceBetween: 12,
+            spaceBetween: 0,
           },
           768: {
-            slidesPerView: 1.3,
-            spaceBetween: 16,
+            slidesPerView: 1,
+            spaceBetween: 0,
           },
           1024: {
-            slidesPerView: 2,
-            spaceBetween: 18,
+            slidesPerView: 1,
+            spaceBetween: 0,
           },
           1280: {
-            slidesPerView: 2.3,
-            spaceBetween: 18,
+            slidesPerView: 1,
+            spaceBetween: 0,
           },
         }}
         modules={[Pagination]}
         className="banner-swiper"
       >
         {slides.map((slide, index) => (
-          <SwiperSlide className="overflow-hidden" key={slide.id}>
+          <SwiperSlide className="overflow-hidden w-full" key={slide.id}>
             <motion.div
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.25 }}
