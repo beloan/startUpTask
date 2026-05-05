@@ -83,7 +83,6 @@ const Poster = () => {
                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 60vw, 50vw"
                 className="object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
             </motion.div>
           </SwiperSlide>
         ))}
