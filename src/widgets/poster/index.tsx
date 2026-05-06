@@ -39,7 +39,7 @@ const Poster = () => {
   ];
 
   return (
-    <section className="py-4 md:py-6 relative left-1/2 right-1/2 -translate-x-1/2 w-screen overflow-hidden">
+    <section className="relative left-1/2 right-1/2 -translate-x-1/2 w-screen overflow-hidden">
       <Swiper
         loop={true}
         slidesPerView={1}
@@ -79,7 +79,7 @@ const Poster = () => {
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.25 }}
               className="relative w-screen overflow-hidden"
-              style={{ height: "min(60vh, clamp(220px, 34vw, 420px))", maxHeight: "80vh" }}
+              style={{ height: "min(45vh, 320px)", maxHeight: "min(45vh, 320px)" }}
             >
               <Image
                 src={`/poster/${slide.id}.png`}
