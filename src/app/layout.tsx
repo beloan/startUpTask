@@ -1,7 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import Script from "next/script";
 
@@ -11,8 +10,6 @@ import { Header } from "@/widgets/header";
 import { Providers } from "./providers";
 import { ReduxProvider } from "./ReduxProvider";
 import "./styles/globals.css";
-
-const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
   title: {
@@ -61,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const yandexWebmasterVerification = process.env.NEXT_PUBLIC_YANDEX_WEBMASTER_VERIFICATION;
 
   return (
-    <html lang="ru" className={`bg-white text-gray-800 ${inter.className}`}>
+    <html lang="ru" className="bg-white text-gray-800">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
