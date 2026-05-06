@@ -39,11 +39,12 @@ const Poster = () => {
   ];
 
   return (
-    <section className="py-4 md:py-6 w-full overflow-hidden">
+    <section className="py-4 md:py-6 relative left-1/2 right-1/2 -translate-x-1/2 w-screen overflow-hidden">
       <Swiper
         loop={true}
         slidesPerView={1}
         spaceBetween={0}
+        centeredSlides={false}
         pagination={{
           clickable: true,
         }}
@@ -66,14 +67,19 @@ const Poster = () => {
           },
         }}
         modules={[Pagination]}
-        className="banner-swiper w-full"
+        className="banner-swiper w-screen"
       >
         {slides.map((slide, index) => (
-          <SwiperSlide className="overflow-hidden w-full max-w-full" key={slide.id}>
+          <SwiperSlide
+            className="overflow-hidden w-screen"
+            style={{ width: "100vw" }}
+            key={slide.id}
+          >
             <motion.div
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.25 }}
-              className="relative w-full max-w-full overflow-hidden border border-white/30 shadow-[0_20px_60px_rgba(15,23,42,0.12)] aspect-[16/9] sm:aspect-[16/7] lg:aspect-[16/6]"
+              className="relative w-screen overflow-hidden"
+              style={{ height: "min(60vh, clamp(220px, 34vw, 420px))", maxHeight: "80vh" }}
             >
               <Image
                 src={`/poster/${slide.id}.png`}
