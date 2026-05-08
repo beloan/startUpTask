@@ -7,6 +7,7 @@ import { Badge } from "@/shared/ui/kit/badge";
 import { Button } from "@/shared/ui/kit/button";
 import { useProductFilters } from "../hooks/useProductFilters";
 import { useCategoryTree } from "@/shared/hooks/useCategory";
+import { useMarketplaceFilters } from "@/shared/hooks/useProductFilters";
 
 interface ActiveFiltersProps {
   onFiltersChange?: () => void;
@@ -17,10 +18,17 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange, sellerMa
   const { currentParams, removeFilter, resetFilters } = useProductFilters();
   const { data: globalCategoriesData } = useCategoryTree(true);
   const [isMounted, setIsMounted] = useState(false);
+  const { data: filtersData } = useMarketplaceFilters();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const getSellerName = (sellerId: number): string => {
+    const seller = filtersData?.sellers?.find((s: any) => s.id === sellerId);
+    return seller?.name || `ID: ${sellerId}`;
+  };
+
 
   const activeFilters = [];
 
@@ -81,17 +89,13 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange, sellerMa
       label: "Только с фото"
     });
   }
-
-  if (currentParams.seller_name) {
-    const sellers = currentParams.seller_name.split(',');
-    sellers.forEach(seller => {
-      activeFilters.push({
-        key: "seller_name",
-        value: seller,
-        label: `Продавец: ${seller}`
-      });
+  if (currentParams.seller_id !== undefined) {
+    activeFilters.push({
+      key: "seller_id",
+      value: currentParams.seller_id.toString(),
+      label: `Продавец: ${getSellerName(currentParams.seller_id)}`
     });
-  }
+  } 
 
   if (currentParams.global_category_id !== undefined) {
     // На сервере всегда показываем ID, чтобы избежать ошибки гидратации
@@ -114,55 +118,6 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({ onFiltersChange, sellerMa
       key: "seller_id",
       value: currentParams.seller_id.toString(),
       label: `Продавец: ${sellerMap[currentParams.seller_id]}`
-    });
-  } else if (currentParams.seller_id !== undefined) {
-    activeFilters.push({
-      key: "seller_id",
-      value: currentParams.seller_id.toString(),
-      label: `Продавец ID: ${currentParams.seller_id}`
-    });
-  }
-
-  if (currentParams.section) {
-    const sectionLabel = currentParams.section === "realty" ? "Недвижимость" : currentParams.section;
-    activeFilters.push({
-      key: "section",
-      value: currentParams.section,
-      label: `Раздел: ${sectionLabel}`
-    });
-  }
-
-  if (currentParams.realty_type) {
-    const realtyTypeMap: Record<string, string> = {
-      apartment: "Квартира",
-      house: "Дом",
-      commercial: "Коммерческая",
-      land: "Участок",
-    };
-    activeFilters.push({
-      key: "realty_type",
-      value: currentParams.realty_type,
-      label: `Тип: ${realtyTypeMap[currentParams.realty_type] || currentParams.realty_type}`
-    });
-  }
-
-  if (currentParams.deal_type) {
-    const dealTypeMap: Record<string, string> = {
-      sale: "Продажа",
-      rent: "Аренда",
-    };
-    activeFilters.push({
-      key: "deal_type",
-      value: currentParams.deal_type,
-      label: `Сделка: ${dealTypeMap[currentParams.deal_type] || currentParams.deal_type}`
-    });
-  }
-
-  if (currentParams.rooms_count !== undefined) {
-    activeFilters.push({
-      key: "rooms_count",
-      value: String(currentParams.rooms_count),
-      label: `Комнат: ${currentParams.rooms_count === 4 ? "4+" : currentParams.rooms_count}`
     });
   }
 

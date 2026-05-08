@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, MessageCircle, User } from "lucide-react";
+import { Bell, Heart, Star, User } from "lucide-react";
 import Link from "next/link";
 import React, { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
@@ -15,7 +15,6 @@ import { SearchBar } from "../search/search";
 import { Button } from "@/shared/ui/kit/button";
 
 export const Header = () => {
-  const supportUrl = "https://qrrun.ru/qr/82a4f13l";
   const searchParams = useSearchParams();
   const queryString = useMemo(() => searchParams.toString(), [searchParams]);
   const withQuery = (path: string) => (queryString ? `${path}?${queryString}` : path);
@@ -30,17 +29,7 @@ export const Header = () => {
                 <ChangeLocationModal />
               </Suspense>
             </div>
-            <div className="flex items-center gap-3 md:gap-4">
-              <a
-                href={supportUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm font-normal tracking-tight text-gray-600 hover:text-blue-600"
-                title="Поддержка"
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Поддержка</span>
-              </a>
+            <div className="flex gap-4">
               <LoginPopup
                 trigger={
                   <Button

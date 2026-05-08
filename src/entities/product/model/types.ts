@@ -20,9 +20,6 @@ export type Product = {
   category_name?: string;
   manufacturer_name?: string;
   price: number;
-  old_price?: number;
-  previous_price?: number;
-  price_change_percent?: number;
   price_type?: string;
   price_address?: string;
   price_latitude?: number;
@@ -45,12 +42,7 @@ export type Product = {
   seller_photo?: string;
   seller_description?: string;
   total_sold?: number;
-  sales_count?: number;
-  view_count?: number;
-  views_count?: number;
-  total_views?: number;
   rating?: number;
-  avg_rating?: number;
   reviews_count?: number;
   available_warehouses?: Array<{
     warehouse_id: number;
@@ -82,13 +74,8 @@ export interface GetProductsDto {
   phone?: string;
   size?: number;
   name?: string;
-  section?: string;
-  realty_type?: string;
-  deal_type?: string;
-  rooms_count?: number;
   lat?: number;
   lon?: number;
-  radius_km?: number;
   sort_by?: SortBy;
   sort_order?: SortOrder;
   category?: string;

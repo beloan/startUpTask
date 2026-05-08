@@ -49,8 +49,6 @@ export interface SellerStatistics {
     views: number;
     clicks: number;
     purchases: number;
-    sales_count?: number;
-    rating?: number;
     conversion: number;
   }>;
   daily_stats: Array<{

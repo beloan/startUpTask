@@ -80,8 +80,7 @@ export default function SellerStatisticsPage() {
     name: product.product_name.substring(0, 15) + (product.product_name.length > 15 ? '...' : ''),
     conversion: product.conversion,
     views: product.views,
-    sales: product.sales_count ?? product.purchases,
-    rating: product.rating ?? 0,
+    purchases: product.purchases,
   }));
 
   return (
@@ -264,8 +263,7 @@ export default function SellerStatisticsPage() {
                           <th className="text-left py-3 px-4">Товар</th>
                           <th className="text-left py-3 px-4">Просмотры</th>
                           <th className="text-left py-3 px-4">Клики</th>
-                          <th className="text-left py-3 px-4">Продажи</th>
-                          <th className="text-left py-3 px-4">Рейтинг</th>
+                          <th className="text-left py-3 px-4">Покупки</th>
                           <th className="text-left py-3 px-4">Конверсия</th>
                           <th className="text-left py-3 px-4">CTR</th>
                         </tr>
@@ -292,13 +290,7 @@ export default function SellerStatisticsPage() {
                             <td className="py-3 px-4">
                               <div className="flex items-center">
                                 <Package className="w-4 h-4 text-gray-400 mr-2" />
-                                {(product.sales_count ?? product.purchases).toLocaleString()}
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center">
-                                <TrendingUp className="w-4 h-4 text-amber-500 mr-2" />
-                                {(product.rating ?? 0).toFixed(1)}
+                                {product.purchases.toLocaleString()}
                               </div>
                             </td>
                             <td className="py-3 px-4">
@@ -308,9 +300,7 @@ export default function SellerStatisticsPage() {
                             </td>
                             <td className="py-3 px-4">
                               <div className="text-sm">
-                                {product.views > 0
-                                  ? ((product.clicks / product.views) * 100).toFixed(1)
-                                  : "0.0"}%
+                                {((product.clicks / product.views) * 100).toFixed(1)}%
                               </div>
                             </td>
                           </tr>
@@ -329,7 +319,6 @@ export default function SellerStatisticsPage() {
                         <Legend />
                         <Bar dataKey="conversion" name="Конверсия (%)" fill="#0088FE" />
                         <Bar dataKey="views" name="Просмотры" fill="#00C49F" />
-                        <Bar dataKey="sales" name="Продажи" fill="#FF8042" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

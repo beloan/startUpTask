@@ -1,17 +1,23 @@
 "use client";
 
-import { CheckCircle2, LockIcon, Loader2, Minus, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import { LockIcon, Loader2, Minus, Plus } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-import { sendYandexGoal } from "@/shared/lib/analytics";
-import { useDataUser } from "@/shared/hooks/useDataUser";
-import { useCreateOrder } from "@/shared/hooks/useOrders";
 import { Button } from "@/shared/ui/kit/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/kit/dialog";
 import { Input } from "@/shared/ui/kit/input";
 import { Label } from "@/shared/ui/kit/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/kit/dialog";
+import { Textarea } from "@/shared/ui/kit/textarea";
+import { Checkbox } from "@/shared/ui/kit/checkbox";
+import { useDataUser } from "@/shared/hooks/useDataUser";
+import { useCreateOrder } from "@/shared/hooks/useOrders";
 
 interface QuickBuyModalProps {
   productId: number;
@@ -37,169 +43,189 @@ const QuickBuyModal = ({
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    address: "",
     quantity: initialQuantity,
+    address: "",
+    note: "",
+    isAnotherPerson: false,
+    recipientName: "",
+    recipientPhone: "",
   });
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isPrefilling, setIsPrefilling] = useState(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const router = useRouter();
   const userDataAuth = useDataUser();
+  const searchParams = useSearchParams();
   const createOrderMutation = useCreateOrder();
 
+  // Сброс формы при открытии
   useEffect(() => {
-    if (!isOpen) {
-      return;
+    if (isOpen) {
+      // eslint-disable-next-line
+      setFormData(prev => ({
+        ...prev,
+        quantity: initialQuantity,
+      }));
+      setIsSuccess(false);
     }
-
-    setIsPrefilling(true);
-    setIsSuccess(false);
-
-    let savedData: { name?: string; phone?: string; address?: string } = {};
-
-    try {
-      if (typeof window !== "undefined") {
-        const raw = localStorage.getItem("user_delivery_data");
-        if (raw) {
-          savedData = JSON.parse(raw);
-        }
-
-        const locationRaw = localStorage.getItem("bystroi_location");
-        if (locationRaw) {
-          const locationStored = JSON.parse(locationRaw) as { address?: string };
-          savedData.address = savedData.address || locationStored.address || "";
-        }
-      }
-    } catch (error) {
-      // ignore prefill errors
-    }
-
-    setFormData({
-      name: userDataAuth?.name || savedData.name || "",
-      phone: userDataAuth?.contragent_phone || savedData.phone || "",
-      address: userDataAuth?.address || savedData.address || "",
-      quantity: initialQuantity,
-    });
-
-    setIsPrefilling(false);
-
-    return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-      }
-    };
-  }, [initialQuantity, isOpen, userDataAuth]);
+  }, [isOpen, initialQuantity]);
 
   const handleDecreaseQuantity = () => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      quantity: Math.max(1, prev.quantity - 1),
+      quantity: Math.max(1, prev.quantity - 1)
     }));
   };
 
   const handleIncreaseQuantity = () => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      quantity: prev.quantity + 1,
+      quantity: prev.quantity + 1
     }));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
+    setFormData(prev => ({ ...prev, [id]: value }));
   };
 
   const handleQuantityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number.parseInt(e.target.value, 10);
-    if (!Number.isNaN(value) && value >= 1 && value <= 99) {
-      setFormData((prev) => ({ ...prev, quantity: value }));
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1 && value <= 99) {
+      setFormData(prev => ({ ...prev, quantity: value }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const name = formData.name.trim();
+    // Проверка телефона
     const phone = (userDataAuth?.contragent_phone || formData.phone || "").trim();
-    const address = formData.address.trim();
-
-    if (!name) {
-      toast.error("Введите имя");
-      return;
-    }
-
     if (!phone) {
       toast.error("Введите номер телефона");
       return;
     }
 
-    if (!address) {
-      toast.error("Введите адрес доставки");
-      return;
-    }
-
+    // Сохраняем данные в localStorage
     try {
-      localStorage.setItem(
-        "user_delivery_data",
-        JSON.stringify({
-          name,
-          phone,
-          address,
-        }),
-      );
+      localStorage.setItem("user_delivery_data", JSON.stringify({
+        name: formData.name,
+        phone: phone,
+        address: formData.address,
+      }));
     } catch (error) {
-      // ignore storage errors
+      // игнорируем
     }
 
-    const goods = [
-      {
-        nomenclature_id: productId,
-        quantity: formData.quantity,
-        ...(warehouseId && { warehouse_id: warehouseId }),
-        is_from_cart: false,
-      },
-    ];
+    const goods = [{
+      nomenclature_id: productId,
+      quantity: formData.quantity,
+      ...(warehouseId && { warehouse_id: warehouseId }),
+      is_from_cart: false,
+    }];
 
-    const delivery = {
-      address,
-      recipient: {
-        name,
-        surname: "",
-        phone,
-      },
+    const delivery: any = {
+      address: formData.address,
+      note: formData.note || undefined,
     };
+
+    if (formData.isAnotherPerson) {
+      delivery.recipient = {
+        name: formData.recipientName,
+        phone: formData.recipientPhone,
+      };
+    }
+
+    const additionalData: any[] = [];
 
     createOrderMutation.mutate(
       {
         goods,
         delivery,
         contragent_phone: phone,
-        additional_data: [],
+        additional_data: additionalData,
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setIsSuccess(true);
-          sendYandexGoal("quick_buy_success", {
-            product_id: productId,
-            product_name: productName,
-            quantity: formData.quantity,
-            price: productPrice,
-          });
-          toast.success("Заказ оформлен!");
-          closeTimerRef.current = setTimeout(() => {
+          toast.success(`Заказ оформлен!`);
+          setTimeout(() => {
             onClose();
-            router.push("/thank-you?source=quick-buy");
-          }, 2200);
+          }, 2500);
         },
         onError: (error: any) => {
           toast.error(error?.response?.data?.detail || "Не удалось оформить заказ");
         },
-      },
+      }
     );
   };
 
+  // Автозаполнение данных пользователя и адреса
+  useEffect(() => {
+    const addressFromUrl = searchParams.get("address");
+    const cityFromUrl = searchParams.get("city");
+    const hasUrlParams = addressFromUrl || cityFromUrl;
+
+    let addressFromStorage = "";
+    if (hasUrlParams && typeof window !== 'undefined') {
+      try {
+        const locationRaw = localStorage.getItem("bystroi_location");
+        if (locationRaw) {
+          const locationStored = JSON.parse(locationRaw) as { address?: string };
+          addressFromStorage = locationStored.address || "";
+        }
+      } catch (error) {
+        console.error("Error reading localStorage:", error);
+      }
+    }
+
+    let ipDetectedAddress = "";
+    if (!hasUrlParams && typeof window !== 'undefined') {
+      try {
+        const detected = sessionStorage.getItem('detected_city');
+        if (detected) {
+          const parsed = JSON.parse(detected);
+          if (parsed.city) {
+            ipDetectedAddress = parsed.city;
+          }
+        }
+      } catch (error) {
+        // ignore
+      }
+    }
+    // eslint-disable-next-line
+    setFormData(prev => {
+      // Определяем источники данных с приоритетом: существующее значение > userDataAuth > сохраненное > URL > IP
+      const name = prev.name || userDataAuth?.name || "";
+      const phone = prev.phone || userDataAuth?.contragent_phone || "";
+      const address = prev.address || addressFromUrl || cityFromUrl || addressFromStorage || ipDetectedAddress || userDataAuth?.address || "";
+
+      // Загружаем сохраненные данные, если нет пользователя и поля пусты
+      if (!userDataAuth) {
+        const savedData = localStorage.getItem("user_delivery_data");
+        if (savedData) {
+          try {
+            const parsed = JSON.parse(savedData);
+            return {
+              ...prev,
+              name: prev.name || parsed.name || "",
+              phone: prev.phone || parsed.phone || "",
+              address: prev.address || addressFromUrl || cityFromUrl || addressFromStorage || ipDetectedAddress || parsed.address || "",
+            };
+          } catch (error) {
+            console.error("Error parsing localStorage data:", error);
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        name,
+        phone,
+        address,
+      };
+    });
+  }, [searchParams, userDataAuth]);
+
   const totalPrice = productPrice * formData.quantity;
-  const isLoading = isPrefilling || createOrderMutation.isPending;
+  const isLoading = createOrderMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -209,15 +235,10 @@ const QuickBuyModal = ({
         </DialogHeader>
 
         {isSuccess ? (
-          <div className="py-6 text-center space-y-3">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-50 text-green-600">
-              <CheckCircle2 className="h-8 w-8" />
-            </div>
-            <h3 className="text-lg font-semibold">Заявка принята</h3>
-            <p className="text-sm text-gray-500">Мы свяжемся с вами для подтверждения заказа</p>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Закрыть
-            </Button>
+          <div className="text-center py-6">
+            <div className="text-green-500 text-4xl mb-3">✓</div>
+            <h3 className="text-lg font-semibold mb-2">Заявка принята!</h3>
+            <p className="text-sm text-gray-500">Мы свяжемся с вами для подтверждения</p>
           </div>
         ) : (
           <>
@@ -271,10 +292,10 @@ const QuickBuyModal = ({
 
                 <div className="flex-1 flex flex-col items-start sm:items-end mt-2 sm:mt-0">
                   <span className="text-lg sm:text-xl text-black-600">
-                    {totalPrice.toLocaleString("ru-RU")}₽
+                    {totalPrice.toLocaleString('ru-RU')}₽
                   </span>
                   <span className="text-xs text-gray-500">
-                    {productPrice.toLocaleString("ru-RU")}₽/<span className="text-sm text-gray-500">{unitName}</span>
+                    {productPrice.toLocaleString('ru-RU')}₽/<span className="text-sm text-gray-500">{unitName}</span>
                   </span>
                 </div>
               </div>
@@ -283,9 +304,7 @@ const QuickBuyModal = ({
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="space-y-2">
                 <div className="flex flex-col gap-1">
-                  <Label htmlFor="name" className="text-sm">
-                    Имя *
-                  </Label>
+                  <Label htmlFor="name" className="text-sm">Имя *</Label>
                   <Input
                     id="name"
                     type="text"
@@ -298,9 +317,7 @@ const QuickBuyModal = ({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Label htmlFor="phone" className="text-sm">
-                    Номер телефона *
-                  </Label>
+                  <Label htmlFor="phone" className="text-sm">Номер телефона *</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -313,9 +330,7 @@ const QuickBuyModal = ({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Label htmlFor="address" className="text-sm">
-                    Адрес доставки *
-                  </Label>
+                  <Label htmlFor="address" className="text-sm">Адрес доставки *</Label>
                   <Input
                     id="address"
                     type="text"
@@ -327,7 +342,65 @@ const QuickBuyModal = ({
                     className="h-9 text-sm"
                   />
                 </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="note" className="text-sm">Примечание к заказу</Label>
+                  <Textarea
+                    id="note"
+                    rows={2}
+                    placeholder="Дополнительные пожелания"
+                    value={formData.note}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="text-sm min-h-[80px]"
+                  />
+                </div>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isAnotherPerson"
+                  checked={formData.isAnotherPerson}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({ ...prev, isAnotherPerson: !!checked }));
+                  }}
+                  disabled={isLoading}
+                  className="cursor-pointer h-4 w-4"
+                />
+                <Label htmlFor="isAnotherPerson" className="cursor-pointer text-sm">
+                  Заказ оформляется для другого человека
+                </Label>
+              </div>
+
+              {formData.isAnotherPerson && (
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="recipientName" className="text-sm">Имя получателя *</Label>
+                    <Input
+                      id="recipientName"
+                      type="text"
+                      required
+                      placeholder="Петр"
+                      value={formData.recipientName}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="recipientPhone" className="text-sm">Номер телефона получателя *</Label>
+                    <Input
+                      id="recipientPhone"
+                      type="tel"
+                      required
+                      placeholder="+7 999 765 43 21"
+                      value={formData.recipientPhone}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
 
               <Button
                 type="submit"
@@ -340,7 +413,7 @@ const QuickBuyModal = ({
                     Оформление...
                   </>
                 ) : (
-                  `Купить за ${totalPrice.toLocaleString("ru-RU")}₽`
+                  `Купить за ${totalPrice.toLocaleString('ru-RU')}₽`
                 )}
               </Button>
 

@@ -13,16 +13,10 @@ import { ProductCard } from '@/entities/product/ui/product-card';
 import { ProductCardSkeleton } from '@/entities/product/ui/product-card-skeleton';
 import { Button } from '@/shared/ui/kit/button';
 
-type RecommendationSortMode = 'latest' | 'rating';
-
-const getSortParams = (mode: RecommendationSortMode) =>
-  mode === 'rating'
-    ? { sort_by: 'rating' as const, sort_order: 'desc' as const }
-    : { sort_by: 'created_at' as const, sort_order: 'desc' as const };
-
 const DEFAULT_RECOMMENDATIONS = {
   size: 20,
-  ...getSortParams('rating'),
+  sort_by: 'total_sold' as const,
+  sort_order: 'desc' as const,
 };
 
 export const Recommendation = () => {
@@ -31,10 +25,10 @@ export const Recommendation = () => {
   const [params, setParams] = useState<any>(DEFAULT_RECOMMENDATIONS);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const sortMode: RecommendationSortMode = 'rating';
 
   const sellerId = searchParams.get('seller_id');
   const address = searchParams.get('address');
+  const city = searchParams.get('city');
   const lat = searchParams.get('lat');
   const lon = searchParams.get('lon');
 
@@ -52,6 +46,7 @@ export const Recommendation = () => {
       sort_order: 'desc' as const,
     };
     if (address) baseParams.address = address;
+    else if (city) baseParams.city = city;
     if (sellerId) baseParams.seller_id = Number(sellerId);
     if (lat) {
       const latNum = Number(lat);
@@ -78,7 +73,7 @@ export const Recommendation = () => {
       } catch (e) {}
     }
     return baseParams;
-  }, [address, sellerId, lat, lon]);
+  }, [address, city, sellerId, lat, lon]);
 
   const { data: sellerData } = useQuery({
     queryKey: ["products", "seller_check", sellerParams],
@@ -93,20 +88,17 @@ export const Recommendation = () => {
 
   useEffect(() => {
     const recommendationParams = getRecommendationsParams();
-    const sortParams = getSortParams(sortMode);
     let baseParams: any;
     if (recommendationParams) {
       baseParams = { ...recommendationParams };
       setFallbackMode(false);
     } else {
-      baseParams = { ...DEFAULT_RECOMMENDATIONS, ...sortParams };
+      baseParams = { ...DEFAULT_RECOMMENDATIONS };
       setFallbackMode(false);
     }
 
-    baseParams.sort_by = sortParams.sort_by;
-    baseParams.sort_order = sortParams.sort_order;
-
     if (address) baseParams.address = address;
+    else if (city) baseParams.city = city;
 
     if (sellerId && hasSellerProducts) {
       baseParams.seller_id = Number(sellerId);
@@ -141,20 +133,20 @@ export const Recommendation = () => {
     }
 
     setParams(baseParams);
-  }, [searchParams, getRecommendationsParams, viewedProducts, hasSellerProducts, address, sellerId, lat, lon, sortMode]);
+  }, [searchParams, getRecommendationsParams, viewedProducts, hasSellerProducts, address, city, sellerId, lat, lon]);
 
   useEffect(() => {
     if (!isLoading && data?.result?.length === 0 && !fallbackMode) {
       const recommendationParams = getRecommendationsParams();
       if (recommendationParams?.category) {
-        const sortParams = getSortParams(sortMode);
         const fallbackParams: any = {
           category: recommendationParams.category,
           size: 20,
-          sort_by: sortParams.sort_by,
-          sort_order: sortParams.sort_order,
+          sort_by: 'total_sold' as const,
+          sort_order: 'desc' as const,
         };
         if (address) fallbackParams.address = address;
+        else if (city) fallbackParams.city = city;
         if (lat) {
           const latNum = Number(lat);
           if (!Number.isNaN(latNum)) fallbackParams.lat = latNum;
@@ -167,15 +159,13 @@ export const Recommendation = () => {
         setFallbackMode(true);
       }
     }
-  }, [data, isLoading, fallbackMode, getRecommendationsParams, address, lat, lon, sortMode]);
+  }, [data, isLoading, fallbackMode, getRecommendationsParams, address, city, lat, lon]);
 
   useEffect(() => {
     if (!isLoading && data?.result?.length === 0 && fallbackMode) {
-      const finalParams: any = {
-        ...DEFAULT_RECOMMENDATIONS,
-        ...getSortParams(sortMode),
-      };
+      const finalParams: any = { ...DEFAULT_RECOMMENDATIONS };
       if (address) finalParams.address = address;
+      else if (city) finalParams.city = city;
       if (lat) {
         const latNum = Number(lat);
         if (!Number.isNaN(latNum)) finalParams.lat = latNum;
@@ -186,7 +176,7 @@ export const Recommendation = () => {
       }
       setParams(finalParams);
     }
-  }, [data, isLoading, fallbackMode, address, lat, lon, sortMode]);
+  }, [data, isLoading, fallbackMode, address, city, lat, lon]);
 
   if (!data?.result?.length && !isLoading) {
     return null;

@@ -22,68 +22,9 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  smsPendingPhone: string | null;
-  smsCodeSentAt: number | null;
   login: (phone: string, type: string, token?: string) => Promise<void>;
-  requestBuyerSmsCode: (phone: string) => Promise<boolean>;
-  verifyBuyerSmsCode: (phone: string, code: string) => Promise<boolean>;
   logout: () => void;
 }
-
-const normalizePhone = (rawPhone: string) => {
-  const digits = rawPhone.replace(/\D/g, "");
-  if (digits.length === 10) {
-    return `7${digits}`;
-  }
-  return digits;
-};
-
-const storeSmsVerification = (smsData: { code: string; phone: string; expiresAt: number }) => {
-  if (typeof window === "undefined") return;
-  const payload = JSON.stringify(smsData);
-  try {
-    sessionStorage.setItem("sms_verification", payload);
-    return;
-  } catch (error) {
-    // Fallback for strict storage policies.
-  }
-  try {
-    localStorage.setItem("sms_verification", payload);
-  } catch (error) {
-    // Ignore storage failures in restricted environments.
-  }
-};
-
-const readSmsVerification = () => {
-  if (typeof window === "undefined") return null;
-  try {
-    const value = sessionStorage.getItem("sms_verification");
-    if (value) return JSON.parse(value);
-  } catch (error) {
-    // Ignore and fall back to localStorage.
-  }
-  try {
-    const value = localStorage.getItem("sms_verification");
-    if (value) return JSON.parse(value);
-  } catch (error) {
-    return null;
-  }
-  return null;
-};
-
-const clearSmsVerification = () => {
-  if (typeof window === "undefined") return;
-  try {
-    sessionStorage.removeItem("sms_verification");
-  } catch (error) {
-    // Ignore and fall back to localStorage.
-  }
-  try {
-    localStorage.removeItem("sms_verification");
-  } catch (error) {
-    // Ignore storage failures in restricted environments.
-  }
-};
 
 const generateMockUser = (phone: string, type: string): User => {
   const isSeller = type === 'seller';
@@ -144,13 +85,11 @@ const verifySellerToken = async (token: string): Promise<{ cashbox: any; user: a
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      smsPendingPhone: null,
-      smsCodeSentAt: null,
       login: async (phone: string, type: string, token?: string) => {
         set({ isLoading: true, error: null });
         try {
@@ -178,94 +117,11 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      requestBuyerSmsCode: async (phone: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          // Validate phone format
-          const cleanPhone = normalizePhone(phone);
-          if (cleanPhone.length < 11) {
-            throw new Error('Неверный номер телефона');
-          }
-
-          // Generate a mock SMS code (in production, call actual SMS provider API)
-          const smsCode = Math.floor(100000 + Math.random() * 900000).toString();
-          
-          // Store SMS code in sessionStorage with expiry (5 minutes)
-          const smsData = {
-            code: smsCode,
-            phone: cleanPhone,
-            expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-          };
-          storeSmsVerification(smsData);
-          console.log(`[SMS Code - Development Only]: ${smsCode}`); // For testing
-
-          set({ 
-            smsPendingPhone: cleanPhone,
-            smsCodeSentAt: Date.now(),
-            error: null,
-          });
-          return true;
-        } catch (error: any) {
-          set({ error: error.message || 'Ошибка при отправке SMS' });
-          return false;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-      verifyBuyerSmsCode: async (phone: string, code: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          // Retrieve SMS code from sessionStorage
-          const storedSmsData = readSmsVerification();
-          const cleanPhone = normalizePhone(phone);
-
-          // Validate SMS code
-          if (!storedSmsData) {
-            throw new Error('SMS код не был отправлен или истёк');
-          }
-
-          if (storedSmsData.phone !== cleanPhone) {
-            throw new Error('Номер телефона не совпадает');
-          }
-
-          if (Date.now() > storedSmsData.expiresAt) {
-            clearSmsVerification();
-            throw new Error('SMS код истёк. Запросите новый код');
-          }
-
-          if (storedSmsData.code !== code) {
-            throw new Error('Неверный SMS код');
-          }
-
-          // SMS code is valid, log in the buyer
-          const mockUser = generateMockUser(cleanPhone, 'buyer');
-          set({ 
-            user: mockUser, 
-            isAuthenticated: true,
-            smsPendingPhone: null,
-            smsCodeSentAt: null,
-          });
-
-          // Clear SMS verification from sessionStorage
-          clearSmsVerification();
-          return true;
-        } catch (error: any) {
-          set({ error: error.message || 'Ошибка верификации SMS' });
-          return false;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-      logout: () => set({ user: null, isAuthenticated: false, error: null, smsPendingPhone: null, smsCodeSentAt: null }),
+      logout: () => set({ user: null, isAuthenticated: false, error: null }),
     }),
     {
       name: "auth-store",
       storage: createJSONStorage(() => localStorage),
-      // Only persist user and isAuthenticated, not SMS verification state
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
     }
   ),
 );

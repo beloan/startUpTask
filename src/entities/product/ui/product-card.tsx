@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingCart, Plus, Minus, Loader2 } from "lucide-react";
+import { ShoppingCart, Star, Plus, Minus, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -26,9 +26,11 @@ export const ProductCard = ({
   id,
   name,
   price,
-  current_amount,
   category_name,
   images,
+  seller_name,
+  total_sold,
+  rating,
   position,
   page,
   isRecommendation = false,
@@ -85,7 +87,6 @@ export const ProductCard = ({
       }
     };
   }, [id, position, page, trackView, priority]);
-
 
   useEffect(() => {
     if (dataUser && pendingAdd) {
@@ -165,6 +166,8 @@ export const ProductCard = ({
   }, []);
 
   const displayPrice = price != null ? `${price.toLocaleString('ru-RU')}₽` : "Цена не указана";
+  const displayRating = rating != null && rating > 0;
+  const displayTotalSold = total_sold != null && total_sold > 0;
   const transformedImageUrl = images?.[0] ? transformImageUrl(images[0]) : null;
 
   const locationParams = getLocationParamsString();
@@ -213,10 +216,20 @@ export const ProductCard = ({
             <p className="tracking-tight inline font-medium leading-4 text-white line-clamp-2">
               {name}
             </p>
+            {displayTotalSold && (
+              <span className="text-xs text-gray-300 ml-1 inline-block">
+                • {total_sold} прод.
+              </span>
+            )}
+            <span className="text-gray-300 text-sm block">{category_name}</span>
             <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="font-medium text-lg text-white">{displayPrice}</span>
-              </div>
+              <span className="font-medium text-lg text-white">{displayPrice}</span>
+              {displayRating && (
+                <span className="flex text-xs font-medium text-white justify-center items-center">
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 inline mr-1" />
+                  {rating?.toFixed(1)}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-2">

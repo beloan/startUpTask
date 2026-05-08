@@ -4,8 +4,6 @@ import { Clock8, Flame, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 
-import { fetchProducts } from "@/entities/product/api";
-
 import { transformImageUrl } from "@/shared/lib/image-utils";
 import { Badge } from "@/shared/ui/kit/badge";
 import { Separator } from "@/shared/ui/kit/separator";
@@ -87,20 +85,24 @@ export const SearchSuggestions = ({
     const load = async () => {
       setLoadingPopular(true);
       try {
-        const detected = typeof window !== "undefined"
-          ? sessionStorage.getItem("detected_city")
-          : null;
-        const parsed = detected ? JSON.parse(detected) : null;
-        const data = await fetchProducts({
-          size: 6,
+        const params = new URLSearchParams({
+          size: "6",
           sort_by: "total_sold",
           sort_order: "desc",
-          lat: parsed?.lat,
-          lon: parsed?.lon,
-          apply_radius_filter: true,
-          radius_km: 20,
         });
-        setPopularProducts(data.result || []);
+        try {
+          const detected = sessionStorage.getItem("detected_city");
+          if (detected) {
+            const parsed = JSON.parse(detected);
+            if (parsed.lat != null) params.append("lat", String(parsed.lat));
+            if (parsed.lon != null) params.append("lon", String(parsed.lon));
+          }
+        } catch (e) {}
+        const response = await fetch(`https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setPopularProducts(data.result || []);
+        }
       } catch (error) {
         console.error("Ошибка загрузки популярных товаров:", error);
       } finally {
@@ -148,21 +150,28 @@ export const SearchSuggestions = ({
     setSearchResults((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const detected = typeof window !== "undefined"
-        ? sessionStorage.getItem("detected_city")
-        : null;
-      const parsed = detected ? JSON.parse(detected) : null;
-
-      const data = await fetchProducts({
-        size: 20,
+      const params = new URLSearchParams({
+        size: "20",
         sort_by: "name",
         sort_order: "desc",
-        name: query.trim() || undefined,
-        lat: parsed?.lat,
-        lon: parsed?.lon,
-        apply_radius_filter: true,
-        radius_km: 20,
       });
+      if (query.trim()) {
+        params.append("name", query);
+      }
+      try {
+        const detected = sessionStorage.getItem("detected_city");
+        if (detected) {
+          const parsed = JSON.parse(detected);
+          if (parsed.lat != null) params.append("lat", String(parsed.lat));
+          if (parsed.lon != null) params.append("lon", String(parsed.lon));
+        }
+      } catch (e) {}
+      const response = await fetch(
+        `https://app.tablecrm.com/api/v1/mp/products?${params.toString()}`,
+        { signal: controller.signal },
+      );
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
       if (controller.signal.aborted) return;
       const products = data.result || [];
       setSearchResults({

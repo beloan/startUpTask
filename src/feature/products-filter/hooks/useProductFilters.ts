@@ -75,12 +75,6 @@ export const useProductFilters = () => {
       if (searchParams.has("apply_radius_filter")) {
         params.apply_radius_filter = searchParams.get("apply_radius_filter") === "true";
       }
-      if (searchParams.has("radius_km")) {
-        const radius = Number(searchParams.get("radius_km"));
-        if (!Number.isNaN(radius) && radius > 0) {
-          params.radius_km = radius;
-        }
-      }
       if (searchParams.has("in_stock")) {
         params.in_stock = searchParams.get("in_stock") === "true";
       }
@@ -96,23 +90,10 @@ export const useProductFilters = () => {
       if (searchParams.has("global_category_id")) {
         params.global_category_id = Number(searchParams.get("global_category_id"));
       }
-      if (searchParams.has("section")) {
-        params.section = searchParams.get("section")!;
-      }
-      if (searchParams.has("realty_type")) {
-        params.realty_type = searchParams.get("realty_type")!;
-      }
-      if (searchParams.has("deal_type")) {
-        params.deal_type = searchParams.get("deal_type")!;
-      }
-      if (searchParams.has("rooms_count")) {
-        const rooms = Number(searchParams.get("rooms_count"));
-        if (!Number.isNaN(rooms)) {
-          params.rooms_count = rooms;
-        }
-      }
       if (searchParams.has("address")) {
         params.address = searchParams.get("address")!;
+      } else if (searchParams.has("city")) {
+        params.city = searchParams.get("city")!;
       }
       // Координаты
       if (searchParams.has("lat")) {

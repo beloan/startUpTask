@@ -1,56 +1,61 @@
-import type { Metadata } from "next";
+"use client"
+import React, { Suspense, useState } from "react";
+import { motion } from "framer-motion";
 
-import { StructuredData } from "@/feature/structured-data/structured-data";
+import SubscribeNewsletter from "@/feature/subscribe-newsletter/ui/subscribe-newsletter";
+import { Metadata } from 'next';
 
-import HomePageClient from "./page.client";
+import Categories from "@/widgets/categories";
+import Deals from "@/widgets/deals";
+import Poster from "@/widgets/poster";
+import Recommendation from "@/widgets/recommendations";
 
-export const metadata: Metadata = {
-  title: "БыстроИточка - маркетплейс с быстрой доставкой",
-  description:
-    "БыстроИточка - маркетплейс с быстрой доставкой. Категории товаров, рекомендации и выгодные предложения в одном месте.",
-  alternates: {
-    canonical: "/",
-  },
-  keywords: ["маркетплейс", "быстрая доставка", "товары", "категории", "рекомендации"],
-  openGraph: {
-    title: "БыстроИточка - маркетплейс с быстрой доставкой",
-    description:
-      "БыстроИточка - маркетплейс с быстрой доставкой. Категории товаров, рекомендации и выгодные предложения в одном месте.",
-    url: "https://bystroi.ru",
-    siteName: "БыстроИточка",
-    images: ["/favicon.ico"],
-    locale: "ru_RU",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "БыстроИточка - маркетплейс с быстрой доставкой",
-    description:
-      "БыстроИточка - маркетплейс с быстрой доставкой. Категории товаров, рекомендации и выгодные предложения в одном месте.",
-    images: ["/favicon.ico"],
-  },
+
+
+const Main = () => {
+  return (
+    <div className="flex flex-col">
+      <Poster />
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.6 }}
+      >
+        <Suspense fallback={<div>Загрузка категорий...</div>}>
+          <Categories />
+        </Suspense>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
+        <Suspense fallback={<div>Загрузка рекомендаций...</div>}>
+          <Recommendation />
+        </Suspense>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.6 }}
+      >
+        <SubscribeNewsletter />
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
+        <Suspense fallback={<div>Загрузка предложений...</div>}>
+          <Deals />
+        </Suspense>
+      </motion.div>
+    </div>
+  );
 };
 
-export default function MainPage() {
-  return (
-    <>
-      <StructuredData
-        type="Organization"
-        data={{
-          name: "быстроИточка",
-          url: "https://bystroi.ru",
-          logo: "https://bystroi.ru/favicon.ico",
-        }}
-      />
-      <StructuredData
-        type="WebSite"
-        data={{
-          name: "быстроИточка",
-          url: "https://bystroi.ru",
-        }}
-      />
-      <h1 className="sr-only">БыстроИточка - маркетплейс с быстрой доставкой</h1>
-      <HomePageClient />
-    </>
-  );
-}
+export default Main;

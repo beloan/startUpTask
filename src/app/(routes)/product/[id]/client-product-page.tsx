@@ -27,6 +27,7 @@ export function ClientProductPage({ product, addToCartProps }: ClientProductPage
   const latFromUrl = searchParams.get('lat') ? Number(searchParams.get('lat')) : undefined;
   const lonFromUrl = searchParams.get('lon') ? Number(searchParams.get('lon')) : undefined;
   const addressFromUrl = searchParams.get('address') || undefined;
+  const cityFromUrl = searchParams.get('city') || undefined;
   
   
   const [detectedCoords, setDetectedCoords] = useState<{ lat?: number; lon?: number } | null>(null);
@@ -77,6 +78,7 @@ export function ClientProductPage({ product, addToCartProps }: ClientProductPage
     lat,
     lon,
     address: addressFromUrl,
+    city: cityFromUrl,
   });
 
   useEffect(() => {

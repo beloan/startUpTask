@@ -24,7 +24,8 @@ export async function generateMetadata(
     id,
     resolvedSearchParams.lat ? Number(resolvedSearchParams.lat) : undefined,
     resolvedSearchParams.lon ? Number(resolvedSearchParams.lon) : undefined,
-    resolvedSearchParams.address ? String(resolvedSearchParams.address) : undefined
+    resolvedSearchParams.address ? String(resolvedSearchParams.address) : undefined,
+    resolvedSearchParams.city ? String(resolvedSearchParams.city) : undefined
   );
 
   if (!product) {
@@ -54,13 +55,6 @@ export async function generateMetadata(
     title,
     description,
     keywords: [product.name, product.category_name, "купить", "цена", "доставка"].filter(Boolean),
-    alternates: {
-      canonical: `/product/${id}`,
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
 
     openGraph: {
       ...previous.openGraph,
@@ -100,8 +94,11 @@ export default async function Page({ params, searchParams }: PageProps) {
   const address = resolvedSearchParams.address
     ? String(resolvedSearchParams.address)
     : undefined;
+  const city = resolvedSearchParams.city
+    ? String(resolvedSearchParams.city)
+    : undefined;
 
-  const product = await fetchProductServer(id, lat, lon, address);
+  const product = await fetchProductServer(id, lat, lon, address, city);
 
   if (!product || !productId) {
     return (
@@ -122,16 +119,6 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   return (
     <>
-      <StructuredData
-        type="BreadcrumbList"
-        data={{
-          items: [
-            { name: "Главная", url: "https://bystroi.ru" },
-            { name: "Товары", url: "https://bystroi.ru/products" },
-            { name: product.category_name || product.name, url: `https://bystroi.ru/product/${id}` },
-          ],
-        }}
-      />
       <div className="container py-8">
         <div className="flex gap-4 flex-col xl:flex-row">
           <div className="flex flex-col flex-1">
@@ -171,12 +158,6 @@ export default async function Page({ params, searchParams }: PageProps) {
             name: product.name,
             description: product.description,
             price: product.price,
-            images: product.images,
-            availability: product.current_amount && product.current_amount > 0 ? "InStock" : "OutOfStock",
-            rating: product.avg_rating ?? product.rating,
-            reviews_count: product.reviews_count,
-            sales_count: product.sales_count ?? product.total_sold,
-            view_count: product.view_count ?? product.views_count ?? product.total_views,
           }}
         />
       </div>

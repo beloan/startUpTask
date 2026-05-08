@@ -4,11 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { PhoneInput } from "react-international-phone";
-import { ChevronLeft } from "lucide-react";
 import "react-international-phone/style.css";
 
 import { Button } from "@/shared/ui/kit/button";
-import { Input } from "@/shared/ui/kit/input";
 import { useAuthStore } from "@/entities/user";
 import { toast } from "sonner";
 
@@ -20,12 +18,10 @@ interface PhoneAuthSheetProps {
 
 export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetProps) => {
   const [phone, setPhone] = useState<string | undefined>("");
-  const [smsCode, setSmsCode] = useState("");
-  const [step, setStep] = useState<"phone" | "code">("phone");
-  const [resendCountdown, setResendCountdown] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { requestBuyerSmsCode, verifyBuyerSmsCode, isLoading, error, smsPendingPhone, smsCodeSentAt } = useAuthStore();
 
   const drawerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -39,23 +35,6 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
 
   const THRESHOLD = 0.28;
   const VELOCITY_THRESHOLD = 0.75;
-
-  // Countdown timer for SMS code resend
-  useEffect(() => {
-    if (!smsCodeSentAt) return;
-    
-    const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - smsCodeSentAt) / 1000);
-      const remaining = Math.max(0, 60 - elapsed);
-      setResendCountdown(remaining);
-      
-      if (remaining === 0) {
-        clearInterval(interval);
-      }
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [smsCodeSentAt]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -179,55 +158,22 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
     target.addEventListener("pointercancel", handlePointerCancel as EventListener);
   };
 
-  const handleRequestSms = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const rawPhone = phone?.replace(/\D/g, "");
-    if (!rawPhone || rawPhone.length < 11) return;
+    const rawPhone = "+" + phone?.replace(/\D/g, "");
+    if (!rawPhone || rawPhone.length < 12) return;
 
-    const success = await requestBuyerSmsCode(rawPhone);
-    if (success) {
-      setStep("code");
-      setSmsCode("");
-      toast.success("Код отправлен на номер");
-    } else {
-      toast.error(useAuthStore.getState().error || "Не удалось отправить код");
-    }
-  };
-
-  const handleVerifySmsCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!smsPendingPhone || smsCode.length !== 6) return;
-
-    const success = await verifyBuyerSmsCode(smsPendingPhone, smsCode);
-    if (success) {
+    setIsLoading(true);
+    try {
+      await login(rawPhone, "buyer");
       toast.success("Вы успешно вошли");
       onSuccess?.();
-      handleClose();
-    } else {
-      toast.error(useAuthStore.getState().error || "Неверный код");
+      onClose();
+    } catch (error) {
+      toast.error("Ошибка входа. Попробуйте позже.");
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleBackToPhone = () => {
-    setStep("phone");
-    setSmsCode("");
-  };
-
-  const handleResendSms = async () => {
-    const rawPhone = phone?.replace(/\D/g, "");
-    if (!rawPhone || rawPhone.length < 11) return;
-
-    await requestBuyerSmsCode(rawPhone);
-    setResendCountdown(60);
-    toast.success("Код отправлен заново");
-  };
-
-  const handleClose = () => {
-    onClose();
-    setPhone("");
-    setSmsCode("");
-    setStep("phone");
-    setResendCountdown(0);
   };
 
   if (!mounted) return null;
@@ -251,7 +197,7 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
             className="fixed inset-0 bg-black z-50"
             onClick={(e) => {
               e.stopPropagation();
-              handleClose();
+              onClose();
             }}
           />
 
@@ -293,123 +239,32 @@ export const PhoneAuthSheet = ({ isOpen, onClose, onSuccess }: PhoneAuthSheetPro
 
             {/* Контент */}
             <div className={cn("overflow-y-auto", isMobile ? "pt-12 pb-6 px-4" : "pt-8 pb-6 px-6")}>
-              <div className="flex items-center gap-2 mb-4">
-                {step === "code" && (
-                  <button
-                    onClick={handleBackToPhone}
-                    className="p-1 hover:bg-gray-100 rounded-md transition"
-                    disabled={isLoading}
-                  >
-                    <ChevronLeft className="w-5 h-5 text-gray-600" />
-                  </button>
-                )}
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold">
-                    {step === "phone" ? "Вход по номеру телефона" : "Введите код из SMS"}
-                  </h2>
-                </div>
-              </div>
-
-              {error && (
-                <div className="text-sm text-red-500 text-center bg-red-50 p-2 rounded-md mb-4">
-                  {error}
-                </div>
-              )}
-
-              <AnimatePresence mode="wait">
-                {step === "phone" ? (
-                  <motion.form
-                    key="phone-form"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3 }}
-                    onSubmit={handleRequestSms}
-                    className="space-y-4"
-                  >
-                    <p className="text-sm text-gray-500">
-                      Мы отправим код подтверждения на указанный номер
-                    </p>
-                    <PhoneInput
-                      placeholder="+7 (999) 123-45-67"
-                      value={phone}
-                      onChange={setPhone}
-                      defaultCountry="ru"
-                      disabled={isLoading}
-                      countrySelectorStyleProps={{
-                        buttonStyle: { paddingLeft: "7px", paddingRight: "2px" },
-                      }}
-                      inputProps={{
-                        className: "w-full border-1 border-[#dcdcdc] rounded-r-sm pl-3",
-                      }}
-                    />
-                    <Button
-                      type="submit"
-                      className="w-full h-10 text-sm bg-blue-600 hover:bg-blue-700"
-                      disabled={isLoading || (phone?.replace(/\D/g, "").length || 0) < 11}
-                    >
-                      {isLoading ? "Отправка..." : "Получить код"}
-                    </Button>
-                  </motion.form>
-                ) : (
-                  <motion.form
-                    key="code-form"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3 }}
-                    onSubmit={handleVerifySmsCode}
-                    className="space-y-4"
-                  >
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600 mb-2">
-                        Код отправлен на номер
-                      </p>
-                      <p className="font-semibold text-gray-900">
-                        {smsPendingPhone}
-                      </p>
-                    </div>
-
-                    <Input
-                      type="text"
-                      placeholder="000000"
-                      value={smsCode}
-                      onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      disabled={isLoading}
-                      maxLength={6}
-                      className="text-center text-2xl tracking-widest font-semibold"
-                    />
-
-                    <Button
-                      type="submit"
-                      className="w-full h-10 text-sm bg-blue-600 hover:bg-blue-700"
-                      disabled={isLoading || smsCode.length !== 6}
-                    >
-                      {isLoading ? "Проверка..." : "Подтвердить"}
-                    </Button>
-
-                    <div className="text-center">
-                      <p className="text-xs text-gray-500">
-                        {resendCountdown > 0 ? (
-                          <>Повторная отправка через {resendCountdown}с</>
-                        ) : (
-                          <>
-                            Не получили код?{" "}
-                            <button
-                              type="button"
-                              onClick={handleResendSms}
-                              disabled={isLoading}
-                              className="text-blue-600 hover:underline font-semibold"
-                            >
-                              Отправить заново
-                            </button>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </motion.form>
-                )}
-              </AnimatePresence>
+              <h2 className="text-xl font-semibold mb-2">Вход по номеру телефона</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Мы отправим код подтверждения на указанный номер
+              </p>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <PhoneInput
+                  placeholder="+7 (999) 123-45-67"
+                  value={phone}
+                  onChange={setPhone}
+                  defaultCountry="ru"
+                  disabled={isLoading}
+                  countrySelectorStyleProps={{
+                    buttonStyle: { paddingLeft: "7px", paddingRight: "2px" },
+                  }}
+                  inputProps={{
+                    className: "w-full border-1 border-[#dcdcdc] rounded-r-sm pl-3",
+                  }}
+                />
+                <Button
+                  type="submit"
+                  className="w-full h-10 text-sm bg-blue-600 hover:bg-blue-700"
+                  disabled={isLoading || (phone?.replace(/\D/g, "").length || 0) < 11}
+                >
+                  {isLoading ? "Вход..." : "Продолжить"}
+                </Button>
+              </form>
             </div>
           </motion.div>
         </>

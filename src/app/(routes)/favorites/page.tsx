@@ -7,13 +7,6 @@ export const metadata: Metadata = {
   title: "Избранное",
   description:
     "Сохраняйте понравившиеся товары и возвращайтесь к ним позже. Управляйте списком избранного в быстроИточка.",
-  alternates: {
-    canonical: "/favorites",
-  },
-  robots: {
-    index: false,
-    follow: false,
-  },
   openGraph: {
     title: "Избранное",
     description: "Сохраняйте понравившиеся товары и возвращайтесь к ним позже.",

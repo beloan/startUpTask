@@ -53,47 +53,21 @@ const Categories = () => {
     );
   }
 
-  const hasProductsInTree = (cat: any): boolean => {
-    if (cat.has_products === true) return true;
-    if (cat.children && cat.children.length > 0) {
-      return cat.children.some((child: any) => {
-        if (!child.is_active) return false;
-        return hasProductsInTree(child);
-      });
-    }
-    return false;
-  };
-
-  const findCategoryByName = (categories: any[], targetName: string): any | null => {
-    for (const category of categories) {
-      if (String(category.name).toLowerCase() === targetName.toLowerCase()) {
-        return category;
-      }
-      if (category.children?.length) {
-        const found = findCategoryByName(category.children, targetName);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  const collectSubcategories = (category: any): any[] => {
-    if (!category?.children?.length) return [];
-    const collected: any[] = [];
-    category.children.forEach((child: any) => {
-      if (child.is_active && hasProductsInTree(child)) {
-        collected.push(child);
-      }
-      collected.push(...collectSubcategories(child));
-    });
-    return collected;
-  };
-
   const mainCategories = categoriesData?.result?.filter(
     category => {
       if (!category.is_active || category.parent_id) return false;
       if (category.has_products === true) return true;
       if (!category.children || category.children.length === 0) return false;
+      const hasProductsInTree = (cat: typeof category): boolean => {
+        if (cat.has_products === true) return true;
+        if (cat.children && cat.children.length > 0) {
+          return cat.children.some(child => {
+            if (!child.is_active) return false;
+            return hasProductsInTree(child);
+          });
+        }
+        return false;
+      };
       const hasActiveChildrenWithProducts = category.children.some(child => {
         if (!child.is_active) return false;
         return hasProductsInTree(child);
@@ -102,13 +76,7 @@ const Categories = () => {
     }
   ) || [];
 
-  const homeAndGardenCategory = findCategoryByName(categoriesData?.result || [], "Для дома и дачи");
-  const homeAndGardenSubcategories = homeAndGardenCategory
-    ? collectSubcategories(homeAndGardenCategory)
-    : [];
-  const displayedCategories = (homeAndGardenSubcategories.length > 0
-    ? homeAndGardenSubcategories
-    : mainCategories).slice(0, 7);
+  const displayedCategories = mainCategories.slice(0, 7);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -163,8 +131,10 @@ const Categories = () => {
             const categoryUrl = new URLSearchParams();
             categoryUrl.set('global_category_id', category.id.toString());
             const address = searchParams.get('address');
+            const city = searchParams.get('city');
             const sellerId = searchParams.get('seller_id');
             if (address) categoryUrl.set('address', address);
+            else if (city) categoryUrl.set('city', city);
             if (sellerId) categoryUrl.set('seller_id', sellerId);
             
             return (
@@ -201,7 +171,6 @@ const Categories = () => {
             );
           })}
         </motion.div>
-
       </div>
     </section>
   );

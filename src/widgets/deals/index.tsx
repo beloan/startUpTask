@@ -12,17 +12,9 @@ import { ProductCard } from '@/entities/product';
 import { ProductCardSkeleton } from '@/entities/product/ui/product-card-skeleton';
 import { Button } from '@/shared/ui/kit/button';
 
-type DealsSortMode = 'latest' | 'rating';
-
-const getSortParams = (mode: DealsSortMode) =>
-  mode === 'rating'
-    ? { sort_by: 'rating' as const, sort_order: 'desc' as const }
-    : { sort_by: 'created_at' as const, sort_order: 'desc' as const };
-
 export const Deals = () => {
   const searchParams = useSearchParams();
   const [isMobile, setIsMobile] = useState(false);
-  const sortMode: DealsSortMode = 'latest';
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -33,6 +25,7 @@ export const Deals = () => {
 
   const sellerId = searchParams.get('seller_id');
   const address = searchParams.get('address');
+  const city = searchParams.get('city');
   const lat = searchParams.get('lat');
   const lon = searchParams.get('lon');
 
@@ -43,6 +36,7 @@ export const Deals = () => {
       sort_order: 'desc' as const,
     };
     if (address) baseParams.address = address;
+    else if (city) baseParams.city = city;
     if (sellerId) baseParams.seller_id = Number(sellerId);
     if (lat) {
       const latNum = Number(lat);
@@ -69,7 +63,7 @@ export const Deals = () => {
       } catch (e) {}
     }
     return baseParams;
-  }, [address, sellerId, lat, lon]);
+  }, [address, city, sellerId, lat, lon]);
 
   const { data: sellerData } = useQuery({
     queryKey: ["products", "seller_check", sellerParams],
@@ -81,13 +75,13 @@ export const Deals = () => {
   const hasSellerProducts = sellerData && sellerData.count > 0 && sellerData.result?.length > 0;
 
   const params = useMemo(() => {
-    const sortParams = getSortParams(sortMode);
     const baseParams: any = {
       size: 20,
-      sort_by: sortParams.sort_by,
-      sort_order: sortParams.sort_order,
+      sort_by: 'total_sold' as const,
+      sort_order: 'desc' as const,
     };
     if (address) baseParams.address = address;
+    else if (city) baseParams.city = city;
     if (sellerId && hasSellerProducts) {
       baseParams.seller_id = Number(sellerId);
     }
@@ -116,7 +110,7 @@ export const Deals = () => {
       } catch (e) {}
     }
     return baseParams;
-  }, [address, sellerId, hasSellerProducts, lat, lon, sortMode]);
+  }, [address, city, sellerId, hasSellerProducts, lat, lon]);
 
   const { data, isLoading } = useProducts(params);
 

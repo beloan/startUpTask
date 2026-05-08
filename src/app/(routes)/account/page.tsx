@@ -6,13 +6,6 @@ export const metadata: Metadata = {
   title: "Личный кабинет",
   description:
     "Управляйте своими заказами, персональными данными и настройками в личном кабинете быстроИточка",
-  alternates: {
-    canonical: "/account",
-  },
-  robots: {
-    index: false,
-    follow: false,
-  },
   openGraph: {
     title: "Личный кабинет",
     description: "Управляйте своими заказами, персональными данными и настройками в личном кабинете.",

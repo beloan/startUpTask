@@ -62,6 +62,7 @@ export const AddToCart = ({
     ? Number(searchParams.get("lon"))
     : undefined;
   const addressFromUrl = searchParams.get("address") || undefined;
+  const cityFromUrl = searchParams.get("city") || undefined;
 
   // Получаем координаты из sessionStorage, если их нет в URL
   const [detectedCoords, setDetectedCoords] = useState<{
@@ -144,6 +145,7 @@ export const AddToCart = ({
         lat,
         lon,
         address: addressFromUrl,
+        city: cityFromUrl,
       });
       setProductData({
         price: product.price,
@@ -167,6 +169,7 @@ export const AddToCart = ({
     lat,
     lon,
     addressFromUrl,
+    cityFromUrl,
     initialPrice,
     initialName,
     initialImages,
@@ -267,7 +270,7 @@ export const AddToCart = ({
   const isLoading = isLoadingProduct || addToCartMutation.isPending;
 
   return (
-    <div className="xl:max-w-full min-w-[280px] mx-auto max-w-lg w-full border border-gray-200 rounded-lg p-4 h-fit pb-28 md:pb-4">
+    <div className="xl:max-w-full min-w-[280px] mx-auto max-w-lg w-full border border-gray-200 rounded-lg p-4 h-fit">
       <p className="font-medium tracking-tight">Оформить заказ</p>
 
       {successMessage && (
@@ -319,7 +322,7 @@ export const AddToCart = ({
         <p className="text-sm text-gray-500">Всего:</p>
         <span className="text-lg font-medium">{formatPrice(price)}</span>
       </div>
-      <div className="pt-4 hidden md:flex flex-col gap-2">
+      <div className="pt-4 flex flex-col gap-2">
         <Button
           className="bg-blue-500 text-white w-full hover:bg-blue-600 cursor-pointer"
           onClick={handleAddToCart}
@@ -345,36 +348,6 @@ export const AddToCart = ({
           Купить в 1 клик
         </Button>
       </div>
-
-      <div className="fixed md:hidden bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur px-4 py-3">
-        <div className="mx-auto max-w-lg flex gap-2">
-          <Button
-            className="bg-blue-500 text-white flex-1 hover:bg-blue-600 cursor-pointer"
-            onClick={handleAddToCart}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Загрузка...
-              </>
-            ) : (
-              <>
-                <Plus />В корзину
-              </>
-            )}
-          </Button>
-          <Button
-            className="text-blue-500 flex-1 cursor-pointer"
-            variant="outline"
-            disabled={isLoading}
-            onClick={() => setIsQuickBuyOpen(true)}
-          >
-            Купить в 1 клик
-          </Button>
-        </div>
-      </div>
-
       <div className="flex pt-4 justify-between items-center">
         <FavoriteButton
           productId={productId}
