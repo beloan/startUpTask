@@ -32,7 +32,7 @@ export const Deals = () => {
   const sellerParams = useMemo(() => {
     const baseParams: any = {
       size: 1,
-      sort_by: 'total_sold' as const,
+      sort_by: 'rating' as const,
       sort_order: 'desc' as const,
     };
     if (address) baseParams.address = address;
@@ -77,7 +77,7 @@ export const Deals = () => {
   const params = useMemo(() => {
     const baseParams: any = {
       size: 20,
-      sort_by: 'total_sold' as const,
+      sort_by: 'rating' as const,
       sort_order: 'desc' as const,
     };
     if (address) baseParams.address = address;

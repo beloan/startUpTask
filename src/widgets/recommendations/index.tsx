@@ -15,7 +15,7 @@ import { Button } from '@/shared/ui/kit/button';
 
 const DEFAULT_RECOMMENDATIONS = {
   size: 20,
-  sort_by: 'total_sold' as const,
+  sort_by: 'created_at' as const,
   sort_order: 'desc' as const,
 };
 
@@ -42,7 +42,7 @@ export const Recommendation = () => {
   const sellerParams = useMemo(() => {
     const baseParams: any = {
       size: 1,
-      sort_by: 'total_sold' as const,
+      sort_by: 'created_at' as const,
       sort_order: 'desc' as const,
     };
     if (address) baseParams.address = address;
@@ -142,7 +142,7 @@ export const Recommendation = () => {
         const fallbackParams: any = {
           category: recommendationParams.category,
           size: 20,
-          sort_by: 'total_sold' as const,
+          sort_by: 'created_at' as const,
           sort_order: 'desc' as const,
         };
         if (address) fallbackParams.address = address;
